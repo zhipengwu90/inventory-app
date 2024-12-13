@@ -9,7 +9,7 @@ const page = async (props: Props) => {
 
   const { data, error } = await supabase.auth.getUser();
   if (error || !data?.user) {
-    redirect("/login");
+    redirect("/");
   }
   return <div className="h-screen">page</div>;
 };
