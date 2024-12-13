@@ -1,13 +1,17 @@
-import React from 'react'
+import React from "react";
+import { redirect } from "next/navigation";
 
-type Props = {}
+import { createClient } from "../utils/supabase/server";
+type Props = {};
 
-const page = (props: Props) => {
-  return (
-    <div
-     className='h-screen'
-    >page</div>
-  )
-}
+const page = async (props: Props) => {
+  const supabase = await createClient();
 
-export default page
+  const { data, error } = await supabase.auth.getUser();
+  if (error || !data?.user) {
+    redirect("/login");
+  }
+  return <div className="h-screen">page</div>;
+};
+
+export default page;

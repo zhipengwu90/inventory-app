@@ -11,11 +11,10 @@ export default async function Home() {
 
   if (!error || data?.user) {
     redirect("/home");
-  } else {
-    return (
-      <div>
-        <LoginPage />;
-      </div>
-    );
   }
+  return (
+    <div>
+      <LoginPage />;
+    </div>
+  );
 }
