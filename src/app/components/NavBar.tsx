@@ -1,7 +1,6 @@
 "use client";
 import Link from "next/link";
 import React, { useState, useRef, useEffect } from "react";
-import Logo from "./Logo";
 import {
   IcRoundClose,
   SkillIconsInstagram,
@@ -10,11 +9,47 @@ import {
   MingcutePhoneFill,
 } from "./Icons";
 import { motion } from "framer-motion";
-import { createPortal } from "react-dom";
+import { createClient } from "../utils/supabase/client";
 import { usePathname } from "next/navigation";
+import { createPortal } from "react-dom";
+import { Button } from "@mui/material";
+import { useRouter } from "next/navigation";
 
-const NavBar: React.FC = () => {
+import Avatar from "@mui/material/Avatar";
+import CircularProgress from "@mui/material/CircularProgress";
+
+type Props = {};
+
+const NavBar = (props: Props) => {
   const [isOpen, setIsOpen] = useState(false);
+  const [isLogin, setIsLogin] = useState(false);
+  const [isLogout, setIsLogout] = useState(false);
+  const [isAvatar, setIsAvatar] = useState(false);
+  // const [user, setUser] = useState(null);
+  const router = useRouter();
+
+  const handlerLogout = async () => {
+    const supabase = await createClient();
+    await supabase.auth.signOut();
+    router.push("/"); // Redirect to home page
+    router.refresh();
+  };
+
+  // const fetchUser = async () => {
+  //   const supabase = await createClient();
+  //   const { data, error } = await supabase.auth.getUser();
+  //   if (error || !data?.user) {
+  //     redirect("/");
+  //   } else {
+  //     console.log("data", data);
+  //   }
+  // };
+
+  // useEffect(() => {
+  //   if (isLogout) {
+  //     fetchUser();
+  //   }
+  // }, [isLogout]);
 
   const handleToggle = () => {
     setIsOpen(!isOpen);
@@ -123,84 +158,69 @@ const NavBar: React.FC = () => {
   );
 
   return (
-    <header className="sticky z-50 top-0 w-full px-32 py-7  xl:px-24 lg:px-16 md:px-12 sm:px-8 xs:px-6    font-semibold text-lg flex items-center justify-between text-dark bg-white  bg-opacity-90">
-      <button
-        className="flex-col justify-center items-center hidden lg:flex"
-        onClick={handleToggle}
+    <header className="sticky z-20 top-0 w-full px-32 py-4  xl:px-24 lg:px-16 md:px-12 sm:px-6 xs:px-1    font-semibold text-lg flex items-center justify-between text-dark bg-light  bg-opacity-90">
+      <div
+        className="
+        font-bold text-xl
+      "
       >
-        <span
-          className={`bg-dark block transition-all duration-300 ease-out h-0.5 w-6 rounded-sm  ${
-            isOpen ? "rotate-45 translate-y-1" : "-translate-y-0.5"
-          }`}
-        ></span>
-        <span
-          className={`bg-dark block transition-all duration-300 ease-out h-0.5 w-6 rounded-sm my-0.5 ${
-            isOpen ? "opacity-0" : "opacity-100"
-          }`}
-        ></span>
-        <span
-          className={`bg-dark block transition-all duration-300 ease-out h-0.5 w-6 rounded-sm  ${
-            isOpen ? "-rotate-45 -translate-y-1" : "translate-y-0.5"
-          }`}
-        ></span>
-      </button>
-
-      <div className="absolute left-[50%] top-2 lg:top-0 translate-x-[-50%]">
-        <Logo />
+        Inventory Management
       </div>
-      {/* phone icon on p */}
-      <nav className=" item-center justify-center gap-5 hidden lg:flex">
-        <motion.a
-          href="tel:2505860377"
-          target={"_blank"}
-          whileHover={{ y: -3 }}
-          whileTap={{ scale: 0.9 }}
-          className="w-6 h-6"
-          onClick={() => setIsOpen(false)}
+
+      <div className="flex flex-row items-center gap-3">
+        <button
+          className="flex-col justify-center items-center hidden lg:flex"
+          onClick={handleToggle}
         >
-          <MingcutePhoneFill className="w-full h-full" />
-        </motion.a>
-      </nav>
+          <span
+            className={`bg-dark block transition-all duration-300 ease-out h-0.5 w-6 rounded-sm  ${
+              isOpen ? "rotate-45 translate-y-1" : "-translate-y-0.5"
+            }`}
+          ></span>
+          <span
+            className={`bg-dark block transition-all duration-300 ease-out h-0.5 w-6 rounded-sm my-0.5 ${
+              isOpen ? "opacity-0" : "opacity-100"
+            }`}
+          ></span>
+          <span
+            className={`bg-dark block transition-all duration-300 ease-out h-0.5 w-6 rounded-sm  ${
+              isOpen ? "-rotate-45 -translate-y-1" : "translate-y-0.5"
+            }`}
+          ></span>
+        </button>
 
-      <div className="w-full  flex justify-between items-center lg:hidden">
-        <nav>
-          <CustomLink href="/" title="Home" className="mr-4" />
-          <CustomLink href="/menu" title="Menu" className="mx-4" />
-          <CustomLink href="/about" title="About" className="ml-4" />
-        </nav>
-
-        <nav className="flex item-center justify-center gap-5">
-          <motion.a
-            href="https://www.facebook.com/brazenPoppy/"
-            target={"_blank"}
-            whileHover={{ y: -3 }}
-            whileTap={{ scale: 0.9 }}
-            className="w-6 h-6"
-            onClick={() => setIsOpen(false)}
+        <div className="flex justify-between items-center lg:hidden">
+          <nav>
+            <CustomLink href="/" title="Home" className="mr-4" />
+            <CustomLink href="/menu" title="Menu" className="mx-4" />
+            <CustomLink href="/about" title="About" className="ml-4" />
+          </nav>
+        </div>
+        <div>
+          <Avatar
+            sx={{ backgroundColor: "#28a8e9" }}
+            onClick={() => setIsAvatar(!isAvatar)}
           >
-            <DeviconFacebook className="w-full h-full" />
-          </motion.a>
+            N
+          </Avatar>
+          {isAvatar && (
+            <button
+              onClick={handlerLogout}
+              className="absolute top-14
 
-          <motion.a
-            href="https://www.instagram.com/brazenpoppy/"
-            target={"_blank"}
-            whileHover={{ y: -3 }}
-            whileTap={{ scale: 0.9 }}
-            className="w-7 h-7"
-          >
-            <SkillIconsInstagram className="w-full h-full" />
-          </motion.a>
+            
+            bg-[#ffffff] shadow-lg border border-gray-100 p-2 rounded-md"
+            >
+              Logout
+            </button>
+          )}
+        </div>
 
-          <motion.a
-            href="tel:2505860377"
-            whileHover={{ y: -3 }}
-            whileTap={{ scale: 0.9 }}
-            className="self-center "
-          >
-            <div> 250-586-0377</div>
-          </motion.a>
-        </nav>
+        {/* <Button onClick={handlerLogout} className="">
+            Logout
+          </Button> */}
       </div>
+
       {isOpen &&
         createPortal(componentToPortal, document.getElementById("modal-root")!)}
     </header>

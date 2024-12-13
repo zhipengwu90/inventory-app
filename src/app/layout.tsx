@@ -2,7 +2,12 @@ import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
 import NavBar from "./components/NavBar";
+import NavBarOut from "./components/NavBarOut";
 import Footer from "./components/Footer";
+import { createClient } from "./utils/supabase/server";
+import { redirect } from "next/navigation";
+
+import { User } from "@supabase/supabase-js";
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
@@ -16,22 +21,31 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Brazen Poppy Bakery",
+  title: "Inventory Management",
   description:
-    "Offering home made sandwiches with freshly baked bread, home made soup, freshly baked goods including our poppy seed rolls and coffee, Bakery Cafe in Parksville offering breakfast and lunch items.",
+    "Inventory Management is a web application that helps you manage your inventory.",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const supabase = await createClient();
+  let result: { user: User } | null = null;
+
+  const { data, error } = await supabase.auth.getUser();
+  if (data && !error) {
+    result = { user: data.user };
+  }
+
   return (
     <html lang="en">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <NavBar />
+        {result ? <NavBar /> : <NavBarOut />}
+
         {children}
         <div id="modal-root"></div>
         <Footer />
