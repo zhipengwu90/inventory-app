@@ -2,6 +2,11 @@
 import Link from "next/link";
 import React, { useState, useRef, useEffect } from "react";
 import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "@/components/ui/hover-card";
+import {
   IcRoundClose,
   SkillIconsInstagram,
   CibYelp,
@@ -12,12 +17,12 @@ import { motion } from "framer-motion";
 import { createClient } from "../utils/supabase/client";
 import { usePathname } from "next/navigation";
 import { createPortal } from "react-dom";
-import { Button } from "@mui/material";
+import { Backdrop, Button } from "@mui/material";
 import { useRouter } from "next/navigation";
 
 import Avatar from "@mui/material/Avatar";
 import CircularProgress from "@mui/material/CircularProgress";
-
+import { User } from "@supabase/supabase-js";
 type Props = {};
 
 const NavBar = (props: Props) => {
@@ -25,7 +30,9 @@ const NavBar = (props: Props) => {
   const [isLogin, setIsLogin] = useState(false);
   const [isLogout, setIsLogout] = useState(false);
   const [isAvatar, setIsAvatar] = useState(false);
-  // const [user, setUser] = useState(null);
+  const [hoverCardOpen, setHoverCardOpen] = useState(false);
+
+  const [user, setUser] = useState<User | null>(null);
   const router = useRouter();
 
   const handlerLogout = async () => {
@@ -35,21 +42,23 @@ const NavBar = (props: Props) => {
     router.refresh();
   };
 
-  // const fetchUser = async () => {
-  //   const supabase = await createClient();
-  //   const { data, error } = await supabase.auth.getUser();
-  //   if (error || !data?.user) {
-  //     redirect("/");
-  //   } else {
-  //     console.log("data", data);
-  //   }
-  // };
+  const fetchUser = async () => {
+    try {
+      const supabase = await createClient();
+      const { data, error } = await supabase.auth.getUser();
+      if (error) {
+        throw error;
+      } else {
+        setUser(data.user);
+      }
+    } catch (error) {
+      throw error;
+    }
+  };
 
-  // useEffect(() => {
-  //   if (isLogout) {
-  //     fetchUser();
-  //   }
-  // }, [isLogout]);
+  useEffect(() => {
+    fetchUser();
+  }, []);
 
   const handleToggle = () => {
     setIsOpen(!isOpen);
@@ -120,7 +129,7 @@ const NavBar = (props: Props) => {
     <motion.div
       initial={{ opacity: 0, scale: 0, x: "-50%", y: "-50%" }}
       animate={{ opacity: 1, scale: 1 }}
-      className="min-w-[60vw] h-[50vh] flex flex-col justify-center items-center z-50 fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2  bg-light/80 text-dark rounded-lg shadow-lg p-8  backdrop-blur-lg "
+      className="min-w-[60vw] min-h-[50vh] flex flex-col justify-center items-center z-50 fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2  bg-light/80 text-dark rounded-lg shadow-lg p-8  backdrop-blur-lg "
     >
       <IcRoundClose
         onClick={() => setIsOpen(false)}
@@ -131,12 +140,27 @@ const NavBar = (props: Props) => {
       {/* Mobile tab*/}
       <nav className="flex flex-col justify-center items-center my-4">
         <CustomMobileLink href="/" title="Home" onToggle={handleToggle} />
-        <CustomMobileLink href="/menu" title="Menu" onToggle={handleToggle} />
-        <CustomMobileLink href="/about" title="About" onToggle={handleToggle} />
+        <CustomMobileLink
+          href="/inventoryList"
+          title="Inventory"
+          onToggle={handleToggle}
+        />
+
+        <CustomMobileLink
+          href="/shoppinglist"
+          title="Shopping"
+          onToggle={handleToggle}
+        />
+        <CustomMobileLink
+          href="/shoppingHistory"
+          title="History"
+          onToggle={handleToggle}
+        />
+      
       </nav>
 
       {/* Mobile social medial icon */}
-      <nav className="flex items-center justify-center gap-8">
+      {/* <nav className="flex items-center justify-center gap-8">
         <a
           href="https://www.facebook.com/brazenPoppy/"
           target={"_blank"}
@@ -153,20 +177,45 @@ const NavBar = (props: Props) => {
         >
           <SkillIconsInstagram className="w-full h-full" />
         </a>
-      </nav>
+      </nav> */}
     </motion.div>
   );
 
+  const handleHoverCardToggle = () => {
+    setHoverCardOpen(!hoverCardOpen);
+  };
+
   return (
-    <header className="sticky z-20 top-0 w-full px-32 py-4  xl:px-24 lg:px-16 md:px-12 sm:px-6 xs:px-1    font-semibold text-lg flex items-center justify-between text-dark bg-light  bg-opacity-90">
+    <header className="sticky z-20 top-0 w-full px-32 py-4  xl:px-24 lg:px-16 md:px-12 sm:px-6 xs:px-2    font-semibold text-lg flex items-center justify-between text-dark bg-light  bg-opacity-90">
       <div
-        className="
+        className=" flex flex-row items-center gap-2
         font-bold text-xl
       "
       >
+        <HoverCard
+          open={hoverCardOpen}
+          onOpenChange={setHoverCardOpen}
+          openDelay={0}
+        >
+          <HoverCardTrigger onClick={handleHoverCardToggle}>
+            <Avatar sx={{ backgroundColor: "#28a8e9" }}>N</Avatar>
+          </HoverCardTrigger>
+          <HoverCardContent className="flex flex-col items-center justify-center gap-2">
+            <Avatar sx={{ backgroundColor: "#28a8e9" }}>N</Avatar>
+            <div className="text-sm">{user?.email}</div>
+            <Button
+              onClick={handlerLogout}
+              variant="contained"
+              color="error"
+              className=""
+            >
+              Logout
+            </Button>
+          </HoverCardContent>
+        </HoverCard>
         Inventory Management
       </div>
-
+      <Backdrop open={isOpen} onClick={handleToggle} />
       <div className="flex flex-row items-center gap-3">
         <button
           className="flex-col justify-center items-center hidden lg:flex"
@@ -192,33 +241,24 @@ const NavBar = (props: Props) => {
         <div className="flex justify-between items-center lg:hidden">
           <nav>
             <CustomLink href="/" title="Home" className="mr-4" />
-            <CustomLink href="/menu" title="Menu" className="mx-4" />
-            <CustomLink href="/about" title="About" className="ml-4" />
+            <CustomLink
+              href="/inventoryList"
+              title="Inventory"
+              className="mx-4"
+            />
+            <CustomLink
+              href="/shoppinglist"
+              title="Shopping"
+              className="mx-4"
+            />
+            <CustomLink
+              href="/shoppingHistory"
+              title="History"
+              className="mx-4"
+            />
+    
           </nav>
         </div>
-        <div>
-          <Avatar
-            sx={{ backgroundColor: "#28a8e9" }}
-            onClick={() => setIsAvatar(!isAvatar)}
-          >
-            N
-          </Avatar>
-          {isAvatar && (
-            <button
-              onClick={handlerLogout}
-              className="absolute top-14
-
-            
-            bg-[#ffffff] shadow-lg border border-gray-100 p-2 rounded-md"
-            >
-              Logout
-            </button>
-          )}
-        </div>
-
-        {/* <Button onClick={handlerLogout} className="">
-            Logout
-          </Button> */}
       </div>
 
       {isOpen &&

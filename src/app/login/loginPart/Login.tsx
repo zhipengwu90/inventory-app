@@ -26,7 +26,7 @@ const LoginPage = (props: Props) => {
     try {
       const result = await login(email, password);
       if (result.success) {
-        router.push("/home");
+        router.push("/");
       } else {
         setIsLoading(false);
         setErrorMessage(result.message || "An unknown error occurred.");

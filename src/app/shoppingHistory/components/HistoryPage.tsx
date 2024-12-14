@@ -11,7 +11,10 @@ import BorderColorIcon from "@mui/icons-material/BorderColor";
 import ItemDetail from "./ItemDetail";
 import DoneIcon from '@mui/icons-material/Done';
 
-type Props = {};
+type Props = {
+
+  className?: string;
+};
 
 const HistoryPage = (props: Props) => {
   const [isLoaded, setIsLoaded] = useState(false);
@@ -19,6 +22,7 @@ const HistoryPage = (props: Props) => {
   const [showDetails, setShowDetails] = useState(false);
   const [itemDetails, setItemDetails] = useState<any>([]);
 
+  const { className } = props;
   const router = useRouter();
 
   const getData = async () => {
@@ -34,7 +38,7 @@ const HistoryPage = (props: Props) => {
     getData();
   }, []);
   return (
-    <div className="p-4 min-h-[60vh] ">
+    <div className={`${className} `}>
       {showDetails && (
         <ItemDetail setShowDetails={setShowDetails} itemDetails={itemDetails} />
       )}
@@ -101,7 +105,7 @@ const HistoryPage = (props: Props) => {
           <div>Loading...</div>
         )}
       </div>
-
+{/* 
       <div className="flex flex-col justify-center items-center gap-2 mt-14">
         <Button
           variant="contained"
@@ -117,7 +121,7 @@ const HistoryPage = (props: Props) => {
         >
           Shopping List
         </Button>
-      </div>
+      </div> */}
     </div>
   );
 };

@@ -80,25 +80,10 @@ const ShoppingListPage = (props: Props) => {
 
   const actions = [
     {
-      icon: <Inventory2Icon color="warning" />,
-      name: `Go${"\u00A0"}to${"\u00A0"}Inventory`,
-
-      action: () => {
-        router.push("/private");
-      },
-    },
-    {
       icon: <EditIcon color="success" />,
       name: `Add${"\u00A0"}Shopping${"\u00A0"}Item`,
       action: () => {
         setIsAddItem(true);
-      },
-    },
-    {
-      icon: <HistoryIcon color="primary" />,
-      name: `View${"\u00A0"}History`,
-      action: () => {
-        router.push("/shoppingHistory");
       },
     },
 
@@ -113,25 +98,10 @@ const ShoppingListPage = (props: Props) => {
 
   const EmptyListActions = [
     {
-      icon: <Inventory2Icon color="warning" />,
-      name: `Go${"\u00A0"}to${"\u00A0"}Inventory`,
-
-      action: () => {
-        router.push("/private");
-      },
-    },
-    {
       icon: <EditIcon color="success" />,
       name: `Add${"\u00A0"}Shopping${"\u00A0"}Item`,
       action: () => {
         setIsAddItem(true);
-      },
-    },
-    {
-      icon: <HistoryIcon color="primary" />,
-      name: `View${"\u00A0"}History`,
-      action: () => {
-        router.push("/shoppingHistory");
       },
     },
   ];
@@ -380,9 +350,7 @@ const ShoppingListPage = (props: Props) => {
           <h2 className="text-xl font-semibold text-red-500">
             No Shopping List Found
           </h2>
-          <p
-            className="  mt-2 text-gray-500"
-          >
+          <p className="  mt-2 text-gray-500">
             It looks like you don't have any items in your shopping list yet.
             Please go to your inventory and generate a list to get started!
           </p>

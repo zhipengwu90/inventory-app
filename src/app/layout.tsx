@@ -45,9 +45,9 @@ export default async function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         {result ? <NavBar /> : <NavBarOut />}
-
-        {children}
         <div id="modal-root"></div>
+        {children}
+
         <Footer />
       </body>
     </html>

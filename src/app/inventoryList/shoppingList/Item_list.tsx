@@ -111,7 +111,7 @@ const Item_list = (props: Props) => {
   const menuActions = [
     {
       icon: <EditIcon color="success" />,
-      name: "Edit",
+      name: `Update${"\u00A0"}Inventoy`,
       action: () => {
         setIsEditing(!isEditing);
         setActions(EditActions);
@@ -119,7 +119,7 @@ const Item_list = (props: Props) => {
     },
     {
       icon: <PlaylistAddIcon color="primary" />,
-      name: `Add${"\u00A0"}Item`,
+      name: `Add${"\u00A0"}New${"\u00A0"}Item`,
       action: () => {
         setIsAddItemOpen(true);
       },
@@ -129,22 +129,6 @@ const Item_list = (props: Props) => {
       name: `Generate${"\u00A0"}List`,
       action: () => {
         setIsCheckboxes(true);
-      },
-    },
-    {
-      icon: <FormatListNumberedIcon color="error" />,
-      name: `Shopping${"\u00A0"}List`,
-
-      action: () => {
-        //navigate to the /shoppingList page
-        router.push("/shoppinglist");
-      },
-    },
-    {
-      icon: <HistoryIcon color="primary" />,
-      name: `View${"\u00A0"}History`,
-      action: () => {
-        router.push("/shoppingHistory");
       },
     },
   ];
@@ -555,7 +539,7 @@ const Item_list = (props: Props) => {
               </Button>
             </div>
           )}
-          <div className="grid  grid-cols-10 place-items-center text-xl font-bold mb-3 sticky top-20 bg-white bg-opacity-90">
+          <div className="grid  grid-cols-10 place-items-center text-xl font-bold mb-3 sticky top-16 bg-white bg-opacity-90">
             {isCheckboxes && <div className="col-span-1"></div>}
             <div className="place-self-start col-span-3 pl-1 ">Name</div>
 
@@ -666,10 +650,6 @@ const Item_list = (props: Props) => {
             </div>
           ))}
         </div>
-        {/* 
-        <pre className="w-1/4 h-1/2 bg-gray-800 rounded-md p-4">
-          {JSON.stringify(itemList, null, 2)}
-        </pre> */}
       </div>
     </>
   );
