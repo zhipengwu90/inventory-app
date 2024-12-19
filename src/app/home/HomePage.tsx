@@ -14,6 +14,7 @@ const HomePage = async (props: Props) => {
   return (
     <div className="min-h-screen py-4 px-32 xl:px-24 lg:px-16 md:px-12 sm:px-6 xs:px-2">
       <HomeContent />
+      
     </div>
   );
 };

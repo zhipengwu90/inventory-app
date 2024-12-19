@@ -91,7 +91,7 @@ const NavBar = (props: Props) => {
         {title}
 
         <span
-          className={`absolute inline-block h-[2px] left-0 -bottom-0.5 group-hover:w-full transition-[width] ease-in-out duration-300 group-hover:bg-red-500 bg-dark
+          className={`absolute inline-block h-[2px] left-0 -bottom-0.5 group-hover:w-full transition-[width] ease-in-out duration-300 group-hover:bg-red-500 bg-dark 
         ${pathname === href ? "w-full" : "w-0"}`}
         >
           &nbsp;
@@ -129,7 +129,7 @@ const NavBar = (props: Props) => {
     <motion.div
       initial={{ opacity: 0, scale: 0, x: "-50%", y: "-50%" }}
       animate={{ opacity: 1, scale: 1 }}
-      className="min-w-[60vw] min-h-[50vh] flex flex-col justify-center items-center z-50 fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2  bg-light/80 text-dark rounded-lg shadow-lg p-8  backdrop-blur-lg "
+      className="min-w-[60vw] min-h-[50vh] flex flex-col justify-center items-center z-50 fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2  bg-light/80 text-dark rounded-lg shadow-lg p-8  backdrop-blur-lg  "
     >
       <IcRoundClose
         onClick={() => setIsOpen(false)}
@@ -240,7 +240,7 @@ const NavBar = (props: Props) => {
 
         <div className="flex justify-between items-center lg:hidden">
           <nav>
-            <CustomLink href="/" title="Home" className="mr-4" />
+            <CustomLink href="/" title="Home" className="mr-4 " />
             <CustomLink
               href="/inventoryList"
               title="Inventory"
