@@ -7,7 +7,7 @@ const HomeContent = (props: Props) => {
   return (
     <div>
       <Item />
-      <CostChart />
+      <CostChart className =' w-screen' />
     </div>
   );
 };

@@ -17,7 +17,7 @@ type Props = {
 const ItemDetail = (props: Props) => {
   const { setShowDetails, itemDetails } = props;
   const [isSaving, setIsSaving] = useState(false);
-  const [price, setPrice] = useState(itemDetails.total_cost);
+  const [price, setPrice] = useState(itemDetails.total_cost ? itemDetails.total_cost : '');
   const [paid, setPaid] = useState(itemDetails.paid);
   const [comment, setComment] = useState(itemDetails.comment);
   const [alert, setAlert] = useState(false);

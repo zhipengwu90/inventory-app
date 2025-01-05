@@ -3,7 +3,9 @@ import React, { useEffect, useState } from "react";
 import getHistory from "../../utils/sql/getHistory";
 import { BarChart } from "@mui/x-charts/BarChart";
 import historyConvert from "@/app/utils/tool/historyConvert";
-type Props = {};
+type Props = {
+  className?: string;
+};
 
 interface seriesDataType {
   dataKey: string;
@@ -43,13 +45,14 @@ const CostChart = (props: Props) => {
   //     }
   //   ];
 
+  const { className } = props;
+
   return (
-    <div>
+    <div className={className}>
       <BarChart
         dataset={dataset}
         xAxis={[{ scaleType: "band", dataKey: "month" }]}
         series={seriesData || []}
-        width={500}
         height={300}
       />
     </div>

@@ -5,7 +5,7 @@ const getHistory = async () => {
   const { data, error } = await supabase
     .from("shopping_history")
     .select("*")
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: true });
 
   if (error) {
     console.error("Error fetching history:", error.message);

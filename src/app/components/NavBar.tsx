@@ -140,11 +140,8 @@ const NavBar = (props: Props) => {
       {/* Mobile tab*/}
       <nav className="flex flex-col justify-center items-center my-4">
         <CustomMobileLink href="/" title="Home" onToggle={handleToggle} />
-        <CustomMobileLink
-          href="/inventoryList"
-          title="Inventory"
-          onToggle={handleToggle}
-        />
+
+        <CustomMobileLink href="/stats" title="Stats" onToggle={handleToggle} />
 
         <CustomMobileLink
           href="/shoppinglist"
@@ -156,7 +153,6 @@ const NavBar = (props: Props) => {
           title="History"
           onToggle={handleToggle}
         />
-      
       </nav>
 
       {/* Mobile social medial icon */}
@@ -241,11 +237,8 @@ const NavBar = (props: Props) => {
         <div className="flex justify-between items-center lg:hidden">
           <nav>
             <CustomLink href="/" title="Home" className="mr-4 " />
-            <CustomLink
-              href="/inventoryList"
-              title="Inventory"
-              className="mx-4"
-            />
+
+            <CustomLink href="/stats" title="Stats" className="mx-4" />
             <CustomLink
               href="/shoppinglist"
               title="Shopping"
@@ -256,7 +249,6 @@ const NavBar = (props: Props) => {
               title="History"
               className="mx-4"
             />
-    
           </nav>
         </div>
       </div>

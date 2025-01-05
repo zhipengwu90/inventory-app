@@ -9,10 +9,11 @@ import MoneyOffIcon from "@mui/icons-material/MoneyOff";
 import DoDisturbAltIcon from "@mui/icons-material/DoDisturbAlt";
 import BorderColorIcon from "@mui/icons-material/BorderColor";
 import ItemDetail from "./ItemDetail";
-import DoneIcon from '@mui/icons-material/Done';
+import DoneIcon from "@mui/icons-material/Done";
+import AddCircleIcon from "@mui/icons-material/AddCircle";
+import AddItem from "./AddItem";
 
 type Props = {
-
   className?: string;
 };
 
@@ -22,6 +23,8 @@ const HistoryPage = (props: Props) => {
   const [showDetails, setShowDetails] = useState(false);
   const [itemDetails, setItemDetails] = useState<any>([]);
 
+  const [isAddItem, setIsAddItem] = useState(false);
+
   const { className } = props;
   const router = useRouter();
 
@@ -30,7 +33,7 @@ const HistoryPage = (props: Props) => {
     const result = await getHistory();
     if (result.success) {
       setHistory(result.data);
-      console.log("result", result.data);
+
       setIsLoaded(true);
     }
   };
@@ -47,6 +50,20 @@ const HistoryPage = (props: Props) => {
         <h1 className="text-2xl font-bold text-center text-gray-800 mb-3">
           Shopping History
         </h1>
+        <div className="fixed bottom-16  right-0 z-10 flex justify-end p-2">
+          <IconButton onClick={() => setIsAddItem(!isAddItem)}>
+            <AddCircleIcon
+              // fontSize="large"
+              color="primary"
+              sx={{ fontSize: 50 }}
+            />
+          </IconButton>
+        </div>
+
+        {isAddItem && (
+          
+          <AddItem setIsAddItem={setIsAddItem} />
+          )}
         {isLoaded ? (
           <div>
             <div className="grid grid-cols-8 place-items-center">
@@ -85,7 +102,7 @@ const HistoryPage = (props: Props) => {
                       <div className=" col-span-1">{item.total_cost}</div>
                       <div className=" col-span-1">
                         {item.paid ? (
-                          <DoneIcon  color="success" />
+                          <DoneIcon color="success" />
                         ) : (
                           <DoDisturbAltIcon fontSize="small" color="error" />
                         )}
@@ -105,7 +122,7 @@ const HistoryPage = (props: Props) => {
           <div>Loading...</div>
         )}
       </div>
-{/* 
+      {/* 
       <div className="flex flex-col justify-center items-center gap-2 mt-14">
         <Button
           variant="contained"

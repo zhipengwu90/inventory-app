@@ -1,22 +1,19 @@
-import React from "react";
 import { redirect } from "next/navigation";
-import HomeContent from "./homePagePart/HomeContent";
-import { createClient } from "../utils/supabase/server";
-type Props = {};
 
-const HomePage = async (props: Props) => {
+import { createClient } from "../utils/supabase/server";
+import DataPage from "./shoppingList/DataPage";
+
+export default async function HomePage() {
   const supabase = await createClient();
 
   const { data, error } = await supabase.auth.getUser();
   if (error || !data?.user) {
     redirect("/login");
   }
+
   return (
-    <div className="min-h-screen py-4 px-32 xl:px-24 lg:px-16 md:px-12 sm:px-6 xs:px-2">
-      <HomeContent />
-      
+    <div className="px-24 xl:px-24 lg:px-16 md:px-12 sm:px-6 xs:px-2   ">
+      <DataPage />
     </div>
   );
-};
-
-export default HomePage;
+}
