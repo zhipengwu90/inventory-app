@@ -1,4 +1,4 @@
-import React, { use, useEffect, useState } from "react";
+import React, { use, useEffect, useState,useRef } from "react";
 import Image from "next/image";
 import Button from "@mui/material/Button";
 import Input from "@mui/material/Input";
@@ -38,6 +38,7 @@ type Props = {
   //     min_amount: number;
   //     shopping_place: [];
   // } || null;
+  selectedID: number | null;
 };
 
 interface ShoppingItem {
@@ -55,13 +56,19 @@ interface Item {
 }
 
 const Item_list = (props: Props) => {
-  const { itemList } = props;
-
+  const { itemList,selectedID } = props;
+  console.log(selectedID);
   const copyItemList = itemList?.map((item) => ({
     ...item,
     current_inventory: item.current_inventory.map((inv: any) => ({ ...inv })),
   }));
+  const itemRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
 
+  useEffect(() => {
+    if (selectedID && itemRefs.current[selectedID]) {
+      itemRefs.current[selectedID]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [selectedID]);
   const [isEditing, setIsEditing] = useState(false);
   const [itemDetail, setItemDetail] = useState<any | null>(null);
 
@@ -473,6 +480,8 @@ const Item_list = (props: Props) => {
         </Alert>
       )}
 
+   
+
       {!isSaving && !isCheckboxes && !detailWindow && !isAddItemOpen && (
         <SpeedDial
           ariaLabel="SpeedDial basic example"
@@ -563,10 +572,14 @@ const Item_list = (props: Props) => {
                     (item.min_amount || 0) -
                       (item.current_inventory?.[0]?.total_number || 0)
                   );
+                  
                   return (
                     <div
                       key={item.id}
-                      className="grid grid-cols-10 py-2 place-items-center"
+                      ref={(el) => {
+                        itemRefs.current[item.id] = el;
+                      }}
+                      className={`grid grid-cols-10 py-2 place-items-center ${item.id === selectedID ? "bg-yellow-300" : ""}`}
                     >
                       {isCheckboxes && (
                         <input
@@ -593,7 +606,7 @@ const Item_list = (props: Props) => {
                           setItemDetail(item);
                         }}
                       >
-                        {item.name}
+                        {item.name} 
                       </div>
                       {!isEditing ? (
                         <div className="col-span-2">{item.min_amount}</div>
