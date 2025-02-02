@@ -8,6 +8,7 @@ import Autocomplete from "@mui/material/Autocomplete";
 import TextField from "@mui/material/TextField";
 import { styled } from '@mui/material/styles';
 import Paper from '@mui/material/Paper';
+import Popper from '@mui/material/Popper';
 type Props = {};
 
 const CustomPaper = styled(Paper)(({ theme }) => ({
@@ -15,6 +16,9 @@ const CustomPaper = styled(Paper)(({ theme }) => ({
   borderColor: '#ff0000',
   // Change this to your desired color
 }));
+const CustomPopper = (props:any) => {
+  return <Popper {...props} placement="top-start" />;
+};
 const DataPage = (props: Props) => {
   const [itemList, setItemList] = useState<any[] | null>(null);
   const [loading, setLoading] = useState(true);
@@ -57,7 +61,7 @@ const DataPage = (props: Props) => {
       ) : (
         <div>
           <Item_list itemList={itemList}  selectedID={selectedID}/>
-          <div className="sticky bottom-2 right-0 ">
+          <div className="sticky bottom-3 right-0 z-50">
             <Autocomplete
             className="bg-white bg-opacity-80"
    
@@ -79,6 +83,7 @@ const DataPage = (props: Props) => {
               sx={{ width: 200 }}
               renderInput={(params) => <TextField {...params} />}
               PaperComponent={(props) => <CustomPaper {...props} />}
+              PopperComponent={CustomPopper}
             />
           </div>
         </div>
