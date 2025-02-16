@@ -530,7 +530,7 @@ const Item_list = (props: Props) => {
 
         <div className="w-full  ">
           {isCheckboxes && (
-            <div className=" fixed bottom-10 left-[50%] translate-x-[-50%] flex flex-row gap-3">
+            <div className=" fixed bottom-20 left-[50%] translate-x-[-50%] flex flex-row gap-3">
               <Button
                 variant="contained"
                 disabled={checkedItems.length === 0}
