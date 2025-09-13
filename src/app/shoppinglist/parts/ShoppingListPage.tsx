@@ -269,62 +269,71 @@ const ShoppingListPage = (props: Props) => {
             <div className="col-span-2">Amount</div>
           </div>
           <div className="flex flex-col gap-2">
-            {shoppingPlace.map((place) => (
-              <div key={place} className="flex flex-col gap-2">
-                <div className="text-lg font-semibold ">{place}</div>
-                {shoppingList.map(
-                  (item: any) =>
-                    item.item_list.shopping_place === place && (
+            {shoppingPlace.map((place) => {
+              // Calculate the sum for this place
+              const placeItems = shoppingList.filter(
+                (item: any) => item.item_list.shopping_place === place
+              );
+              const placeSum = placeItems.reduce(
+                (sum: number, item: any) =>
+                  sum + (Number(item.item_list.price) || 0) * (Number(item.amount) || 1),
+                0
+              );
+
+              return (
+                <div key={place} className="flex flex-col gap-2">
+                  <div className="text-lg font-semibold ">
+                    {place}
+                  </div>
+                  {placeItems.map((item: any) => (
+                    <div
+                      key={item.item_list.id}
+                      className=" grid grid-cols-7 pl-3 place-items-center"
+                    >
+                      <input
+                        type="checkbox"
+                        className="col-span-1 "
+                        defaultChecked={item.shopped}
+                        onChange={(e) => {
+                          handleCheck(item, e);
+                        }}
+                      />
                       <div
-                        key={item.item_list.id}
-                        className=" grid grid-cols-7 pl-3 place-items-center"
+                        className={`col-span-3 hover:underline hover:cursor-pointer  place-self-start
+                          hover:text-[#ff5151] ${item.shopped ? "line-through" : ""}  `}
+                        onClick={() => {
+                          setDetailWindow(true);
+                          setItemDetail(item.item_list);
+                        }}
                       >
-                        <input
-                          type="checkbox"
-                          className="col-span-1 "
-                          defaultChecked={item.shopped}
-                          onChange={(e) => {
-                            handleCheck(item, e);
-                          }}
-                        />
-                        <div
-                          className={`col-span-3 hover:underline hover:cursor-pointer  place-self-start
-                     hover:text-[#ff5151] ${
-                       item.shopped ? "line-through" : ""
-                     }  `}
-                          onClick={() => {
-                            setDetailWindow(true);
-                            setItemDetail(item.item_list);
-                          }}
-                        >
-                          {item.item_list.name}
-                        </div>
-                        <div
-                          className={`col-span-1 ${
-                            item.shopped ? "line-through" : ""
-                          }  `}
-                        >
-                          {item.item_list.price
-                            ? `$${item.item_list.price}`
-                            : ""}
-                        </div>
-                        <div
-                          className={`col-span-2 
-                            hover:underline hover:cursor-pointer
-                            hover:text-[#ff5151]
-                            ${item.shopped ? "line-through" : ""}  `}
-                          onClick={() => {
-                            setAmountWindow(!amountWindow);
-                            setAmountDetail(item);
-                          }}
-                        >
-                          {item.amount}
-                        </div>
+                        {item.item_list.name}
                       </div>
-                    )
-                )}
-              </div>
-            ))}
+                      <div
+                        className={`col-span-1 ${item.shopped ? "line-through" : ""}  `}
+                      >
+                        {item.item_list.price ? `$${item.item_list.price}` : ""}
+                      </div>
+                      <div
+                        className={`col-span-2 
+                          hover:underline hover:cursor-pointer
+                          hover:text-[#ff5151]
+                          ${item.shopped ? "line-through" : ""}  `}
+                        onClick={() => {
+                          setAmountWindow(!amountWindow);
+                          setAmountDetail(item);
+                        }}
+                      >
+                        {item.amount}
+                      </div>
+                    </div>
+                  ))}
+                  {/* Sum at the bottom */}
+                  <div className="text-base font-normal text-gray-500 self-end pr-4">
+                    Total: ${placeSum.toFixed(2)}
+                  </div>
+                </div>
+              );
+            })}
           </div>
 
           {/* <div className="flex flex-col justify-center items-center gap-5">

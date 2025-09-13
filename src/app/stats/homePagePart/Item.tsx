@@ -6,6 +6,8 @@ import MenuItem from "@mui/material/MenuItem";
 import FormControl from "@mui/material/FormControl";
 import getAllItem from "@/app/utils/dashboardsql/getAllItem";
 import { Divider } from "@mui/material";
+
+import lineChartDataConvert from "@/app/utils/tool/lineChartDataConvert";
 type Props = {};
 
 interface CurrentInventory {
@@ -50,16 +52,28 @@ const Item = (props: Props) => {
     } else {
       if (data && data.length > 0) {
         // console.log(data);
+
         setItems(data);
       } else {
         setItems(null);
       }
     }
   };
+
+
   useEffect(() => {
     fetchData();
   }, []);
 
+
+  const handlerChange = (event: SelectChangeEvent) => {
+    const item = items?.find(
+      (item) => item.id === Number(event.target.value)
+    );
+    setSelectedItem(item || null);
+    lineChartDataConvert(item);
+    
+  };
   return (
     <div>
       {/* {items && items.map((item: Item) => <div key={item.id}>{item.name}</div>)} */}
@@ -70,12 +84,7 @@ const Item = (props: Props) => {
           id="demo-simple-select"
           value={selectedItem ? selectedItem.id.toString() : ""}
           label="item"
-          onChange={(event: SelectChangeEvent) => {
-            const item = items?.find(
-              (item) => item.id === Number(event.target.value)
-            );
-            setSelectedItem(item || null);
-          }}
+          onChange={handlerChange}
         >
           {items &&
             items.map((item: Item) => (

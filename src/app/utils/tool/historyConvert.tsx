@@ -1,4 +1,4 @@
-import { data } from "motion/react-client";
+
 
 const historyConvert = (history: any) => {
   let dataset: any = [];
@@ -45,7 +45,7 @@ const historyConvert = (history: any) => {
     dataset.push(entry);
   }
 
-  console.log("dataset", dataset);
+
 
   return [seriesData, dataset];
 };
