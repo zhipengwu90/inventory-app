@@ -16,7 +16,7 @@ const getAllItem = async () => {
     .order("name", { ascending: true })
     .order("timestamps", {
       foreignTable: "current_inventory",
-      ascending: false,
+      ascending: true,
     });
 
   if (error) {

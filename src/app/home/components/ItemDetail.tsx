@@ -15,10 +15,18 @@ import CloseIcon from "@mui/icons-material/Close";
 
 import getIemCategory from "../../utils/sql/getItemCategory";
 import getShoppingPlace from "../../utils/sql/getShoppingPlace";
+import getItemPlace from "../../utils/sql/getItemPlace";
 import uploadItemImage from "../../utils/sql/uploadItemImage";
 import saveItemDetail from "../../utils/sql/saveItemDetail";
 import deleteItem from "../../utils/sql/deleteItem";
 import BackspaceIcon from "@mui/icons-material/Backspace";
+import AddIcon from "@mui/icons-material/Add";
+import addItemPlace from "../../utils/sql/addItemPlace";
+import Dialog from "@mui/material/Dialog";
+import DialogTitle from "@mui/material/DialogTitle";
+import DialogActions from "@mui/material/DialogActions";
+import DialogContent from "@mui/material/DialogContent";
+import TextField from "@mui/material/TextField";
 
 type Props = {
   itemDetail: any;
@@ -36,9 +44,12 @@ const ItemDetail = (props: Props) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [comment, setComment] = useState(itemDetail?.comment || "");
   const [itemName, setItemName] = useState(itemDetail?.name || "");
+  const [itemPlace, setItemPlace] = useState(itemDetail?.item_place || "");
   const [alert, setAlert] = useState(false);
   const [alertMessage, setAlertMessage] = useState("");
   const [isError, setIsError] = useState(false);
+  const [isAddItemPlaceModalOpen, setIsAddItemPlaceModalOpen] = useState(false);
+  const [newItemPlace, setNewItemPlace] = useState("");
 
   const handleImageClick = () => {
     setIsModalOpen(true);
@@ -51,6 +62,7 @@ const ItemDetail = (props: Props) => {
   const [itemCategoryValue, setItemCategoryValue] = useState(
     itemDetail?.item_category || ""
   );
+  const [itemPlaceEnum, setItemPlaceEnum] = useState<any | null>(null);
   const [shoppingPlace, setShoppingPlace] = useState<any | null>(null);
   const [shoppingPlaceValue, setShoppingPlaceValue] = useState(
     itemDetail?.shopping_place || ""
@@ -106,9 +118,23 @@ const ItemDetail = (props: Props) => {
     }
   };
 
+  const getItemPlaceHandler = async () => {
+    try {
+      const { data, error } = await getItemPlace();
+
+      if (error) {
+        throw new Error(error);
+      }
+      setItemPlaceEnum(data);
+    } catch (error) {
+      console.error("Error getting item place:", error);
+    }
+  };
+
   useEffect(() => {
     getItemCategoryHandler();
     getShoppingPlaceHandler();
+    getItemPlaceHandler();
   }, []);
 
   const handleSave = async () => {
@@ -121,6 +147,7 @@ const ItemDetail = (props: Props) => {
       price,
       itemCategoryValue,
       shoppingPlaceValue,
+      itemPlace,
       comment,
       imageUrl
     );
@@ -171,6 +198,51 @@ const ItemDetail = (props: Props) => {
         window.location.reload();
       }, 1000);
     }
+  };
+
+  const addItemPlaceHandler = async () => {
+    const data = await addItemPlace("test");
+
+    if (!data.success) {
+      setIsError(true);
+      setAlert(true);
+      setAlertMessage("Error adding item place");
+      console.error("Error adding item place:", data.error);
+      return;
+    } else {
+      console.log("Item place added successfully");
+      setAlert(true);
+      setAlertMessage("Item place added successfully");
+      //refresh item place enum
+      getItemPlaceHandler();
+    }
+  };
+
+  // Handler for saving new item place
+  const handleSaveNewItemPlace = async () => {
+    if (!newItemPlace.trim()) return;
+
+    const data = await addItemPlace(newItemPlace.trim());
+
+    if (!data.success) {
+      setIsError(true);
+      setAlert(true);
+      setAlertMessage("Error adding item place");
+
+      return;
+    } else {
+      console.log("Item place added successfully");
+      setAlert(true);
+      setAlertMessage("Item place added successfully");
+    }
+    setIsAddItemPlaceModalOpen(false);
+    setNewItemPlace("");
+    getItemPlaceHandler(); // refresh the list
+    setTimeout(() => {
+      setAlert(false);
+      setAlertMessage("");
+      setIsError(false);
+    }, 2000);
   };
 
   return (
@@ -287,9 +359,71 @@ const ItemDetail = (props: Props) => {
               {itemDetail?.shopping_place}
             </div>
           )}
-          {/* 
-          <div className="col-span-4 font-semibold">Location:</div>
-          <div className="col-span-6 ">{itemDetail?.item_location}</div> */}
+
+          <div className="col-span-4 lg:col-span-5 font-semibold flex justify-between ">
+            <span>Item Place:</span>
+            {isEditDetail && (
+              <>
+                <IconButton
+                  className=" bg-gray-300 opacity-90 hover:bg-gray-200 mr-2"
+                  color="error"
+                  onClick={() => setIsAddItemPlaceModalOpen(true)}
+                >
+                  <AddIcon fontSize="medium" />
+                </IconButton>
+                <Dialog
+                  open={isAddItemPlaceModalOpen}
+                  onClose={() => setIsAddItemPlaceModalOpen(false)}
+                >
+                  <DialogTitle>Add New Item Place</DialogTitle>
+                  <DialogContent>
+                    <TextField
+                      autoFocus
+                      margin="dense"
+                      label="Item Place"
+                      fullWidth
+                      value={newItemPlace}
+                      onChange={(e) => setNewItemPlace(e.target.value)}
+                    />
+                  </DialogContent>
+                  <DialogActions>
+                    <Button
+                      onClick={() => setIsAddItemPlaceModalOpen(false)}
+                      color="primary"
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={handleSaveNewItemPlace}
+                      color="primary"
+                      variant="contained"
+                    >
+                      Save
+                    </Button>
+                  </DialogActions>
+                </Dialog>
+              </>
+            )}
+          </div>
+          {isEditDetail ? (
+            <select
+              className="col-span-6 lg:col-span-5 border border-gray-300 rounded-sm px-1"
+              onChange={(e) => setItemPlace(e.target.value)}
+              value={itemPlace}
+            >
+              <option value="">--</option>
+              {itemPlaceEnum?.map((item: any, index: number) => (
+                <option key={index} value={item.item_place}>
+                  {item.item_place}
+                </option>
+              ))}
+            </select>
+          ) : (
+            <div className="col-span-6 lg:col-span-5 ">
+              {itemDetail?.item_place}
+            </div>
+          )}
+
           <div className="col-span-10 font-semibold">Comment:</div>
 
           {isEditDetail ? (

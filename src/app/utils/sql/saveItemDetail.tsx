@@ -9,6 +9,7 @@ const saveItemDetail = async (
   price: number | string,
   itemCategoryValue: string,
   shoppingPlaceValue: string,
+  itemPlace: string,
   comment: string,
   imageUrl: string
 ) => {
@@ -19,6 +20,7 @@ const saveItemDetail = async (
       name: itemName,
       item_category: itemCategoryValue,
       shopping_place: shoppingPlaceValue,
+      item_place: itemPlace,
       comment: comment,
       img_url: imageUrl,
     };
@@ -28,6 +30,7 @@ const saveItemDetail = async (
       price: price,
       item_category: itemCategoryValue,
       shopping_place: shoppingPlaceValue,
+      item_place: itemPlace,
       comment: comment,
       img_url: imageUrl,
     };

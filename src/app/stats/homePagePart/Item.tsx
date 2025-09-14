@@ -6,6 +6,7 @@ import MenuItem from "@mui/material/MenuItem";
 import FormControl from "@mui/material/FormControl";
 import getAllItem from "@/app/utils/dashboardsql/getAllItem";
 import { Divider } from "@mui/material";
+import { LineChart } from "@mui/x-charts/LineChart";
 
 import lineChartDataConvert from "@/app/utils/tool/lineChartDataConvert";
 type Props = {};
@@ -34,11 +35,10 @@ interface Item {
   comment: string;
   price: number;
   item_location: string;
-  img_url:string;
+  img_url: string;
   item_location_code: number;
   unit: string;
   current_inventory: CurrentInventory[];
-
 }
 
 const Item = (props: Props) => {
@@ -60,19 +60,15 @@ const Item = (props: Props) => {
     }
   };
 
-
   useEffect(() => {
     fetchData();
   }, []);
 
-
   const handlerChange = (event: SelectChangeEvent) => {
-    const item = items?.find(
-      (item) => item.id === Number(event.target.value)
-    );
+    const item = items?.find((item) => item.id === Number(event.target.value));
     setSelectedItem(item || null);
     lineChartDataConvert(item);
-    
+    console.log(item);
   };
   return (
     <div>
@@ -104,7 +100,7 @@ const Item = (props: Props) => {
           <div>item_category: {selectedItem.item_category}</div>
           <div>comment: {selectedItem.comment}</div>
           <div>price: ${selectedItem.price}</div>
-          <div>
+          {/* <div>
             current_inventory:
             {selectedItem.current_inventory.map((currentInventory) => (
               <div key={currentInventory.id}>
@@ -117,6 +113,38 @@ const Item = (props: Props) => {
                 <Divider />
               </div>
             ))}
+          </div> */}
+          <div>
+            <h3 className="font-semibold mt-4 mb-2">Used Amount Over Time</h3>
+            <LineChart
+              width={500}
+              height={300}
+              series={[
+                {
+                  data: selectedItem.current_inventory
+                    .filter((ci) => ci.used_amount !== null && ci.date)
+                    .map((ci) => ci.used_amount),
+                  label: "Used Amount",
+                },
+              ]}
+              xAxis={[
+                {
+                  scaleType: "point",
+                  data: selectedItem.current_inventory
+                    .filter((ci) => ci.used_amount !== null && ci.date)
+                    .map((ci) => ci.date?.slice(0, 10)), // show only YYYY-MM-DD
+                  label: "Date",
+                },
+              ]}
+              yAxis={[
+                {
+                  // Optionally, you can use min, max, or tickMinStep for axis control
+
+                  tickMinStep: 1,
+      
+                },
+              ]}
+            />
           </div>
         </div>
       )}

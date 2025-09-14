@@ -270,10 +270,20 @@ const ShoppingListPage = (props: Props) => {
           </div>
           <div className="flex flex-col gap-2">
             {shoppingPlace.map((place) => {
-              // Calculate the sum for this place
+              // Get all items for this place
               const placeItems = shoppingList.filter(
                 (item: any) => item.item_list.shopping_place === place
               );
+
+              // Group by item_place (default to "Other" if falsy)
+              const groupedByPlace = placeItems.reduce((acc: any, item: any) => {
+                const groupKey = item.item_list.item_place || "Other";
+                if (!acc[groupKey]) acc[groupKey] = [];
+                acc[groupKey].push(item);
+                return acc;
+              }, {});
+
+              // Calculate the sum for this place
               const placeSum = placeItems.reduce(
                 (sum: number, item: any) =>
                   sum + (Number(item.item_list.price) || 0) * (Number(item.amount) || 1),
@@ -285,46 +295,52 @@ const ShoppingListPage = (props: Props) => {
                   <div className="text-lg font-semibold ">
                     {place}
                   </div>
-                  {placeItems.map((item: any) => (
-                    <div
-                      key={item.item_list.id}
-                      className=" grid grid-cols-7 pl-3 place-items-center"
-                    >
-                      <input
-                        type="checkbox"
-                        className="col-span-1 "
-                        defaultChecked={item.shopped}
-                        onChange={(e) => {
-                          handleCheck(item, e);
-                        }}
-                      />
-                      <div
-                        className={`col-span-3 hover:underline hover:cursor-pointer  place-self-start
-                          hover:text-[#ff5151] ${item.shopped ? "line-through" : ""}  `}
-                        onClick={() => {
-                          setDetailWindow(true);
-                          setItemDetail(item.item_list);
-                        }}
-                      >
-                        {item.item_list.name}
-                      </div>
-                      <div
-                        className={`col-span-1 ${item.shopped ? "line-through" : ""}  `}
-                      >
-                        {item.item_list.price ? `$${item.item_list.price}` : ""}
-                      </div>
-                      <div
-                        className={`col-span-2 
-                          hover:underline hover:cursor-pointer
-                          hover:text-[#ff5151]
-                          ${item.shopped ? "line-through" : ""}  `}
-                        onClick={() => {
-                          setAmountWindow(!amountWindow);
-                          setAmountDetail(item);
-                        }}
-                      >
-                        {item.amount}
-                      </div>
+                  {/* Render each group */}
+                  {Object.entries(groupedByPlace).map(([group, items]) => (
+                    <div key={group} className="mb-2">
+                      <div className="font-semibold text-sm text-center text-blue-700 mb-1">{group}</div>
+                      {(items as any[]).map((item: any) => (
+                        <div
+                          key={item.item_list.id}
+                          className=" grid grid-cols-7 pl-3 place-items-center"
+                        >
+                          <input
+                            type="checkbox"
+                            className="col-span-1 "
+                            defaultChecked={item.shopped}
+                            onChange={(e) => {
+                              handleCheck(item, e);
+                            }}
+                          />
+                          <div
+                            className={`col-span-3 hover:underline hover:cursor-pointer  place-self-start
+                              hover:text-[#ff5151] ${item.shopped ? "line-through" : ""}  `}
+                            onClick={() => {
+                              setDetailWindow(true);
+                              setItemDetail(item.item_list);
+                            }}
+                          >
+                            {item.item_list.name}
+                          </div>
+                          <div
+                            className={`col-span-1 ${item.shopped ? "line-through" : ""}  `}
+                          >
+                            {item.item_list.price ? `$${item.item_list.price}` : ""}
+                          </div>
+                          <div
+                            className={`col-span-2 
+                              hover:underline hover:cursor-pointer
+                              hover:text-[#ff5151]
+                              ${item.shopped ? "line-through" : ""}  `}
+                            onClick={() => {
+                              setAmountWindow(!amountWindow);
+                              setAmountDetail(item);
+                            }}
+                          >
+                            {item.amount}
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   ))}
                   {/* Sum at the bottom */}
