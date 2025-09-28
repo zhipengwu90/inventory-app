@@ -108,7 +108,7 @@ const ItemDetail = (props: Props) => {
   const getShoppingPlaceHandler = async () => {
     try {
       const { data, error } = await getShoppingPlace();
-
+      console.log("Shopping Place Data:", data);
       if (error) {
         throw new Error(error);
       }
@@ -121,7 +121,7 @@ const ItemDetail = (props: Props) => {
   const getItemPlaceHandler = async () => {
     try {
       const { data, error } = await getItemPlace();
-      console.log("item place data", data);
+
       if (error) {
         throw new Error(error);
       }

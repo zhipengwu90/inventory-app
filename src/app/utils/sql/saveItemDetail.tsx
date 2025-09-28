@@ -20,7 +20,7 @@ const saveItemDetail = async (
       name: itemName,
       item_category: itemCategoryValue,
       shopping_place: shoppingPlaceValue,
-      item_place: itemPlace,
+      item_place: itemPlace === "" ? null : itemPlace,
       comment: comment,
       img_url: imageUrl,
     };
@@ -30,12 +30,13 @@ const saveItemDetail = async (
       price: price,
       item_category: itemCategoryValue,
       shopping_place: shoppingPlaceValue,
-      item_place: itemPlace,
+      item_place: itemPlace === "" ? null : itemPlace,
       comment: comment,
       img_url: imageUrl,
     };
   }
 
+  console.log("shoppingPlaceValue", shoppingPlaceValue);
 
   const { error } = await supabase
     .from("item_list")
