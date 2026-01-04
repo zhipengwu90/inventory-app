@@ -6,17 +6,17 @@ import Item_list from "./Item_list";
 import { CircularProgress } from "@mui/material";
 import Autocomplete from "@mui/material/Autocomplete";
 import TextField from "@mui/material/TextField";
-import { styled } from '@mui/material/styles';
-import Paper from '@mui/material/Paper';
-import Popper from '@mui/material/Popper';
+import { styled } from "@mui/material/styles";
+import Paper from "@mui/material/Paper";
+import Popper from "@mui/material/Popper";
 type Props = {};
 
 const CustomPaper = styled(Paper)(({ theme }) => ({
-  backgroundColor: '#e9e4e4',
-  borderColor: '#ff0000',
+  backgroundColor: "#e9e4e4",
+  borderColor: "#ff0000",
   // Change this to your desired color
 }));
-const CustomPopper = (props:any) => {
+const CustomPopper = (props: any) => {
   return <Popper {...props} placement="top-start" />;
 };
 const DataPage = (props: Props) => {
@@ -46,7 +46,6 @@ const DataPage = (props: Props) => {
         })
         .limit(1, { foreignTable: "current_inventory" });
 
-      console.log(error);
       setItemList(data);
       setLoading(false);
     };
@@ -60,11 +59,10 @@ const DataPage = (props: Props) => {
         </div>
       ) : (
         <div>
-          <Item_list itemList={itemList}  selectedID={selectedID}/>
+          <Item_list itemList={itemList} selectedID={selectedID} />
           <div className="sticky bottom-3 right-0 z-50">
             <Autocomplete
-            className="bg-white bg-opacity-80"
-   
+              className="bg-white bg-opacity-80"
               disablePortal
               options={itemList ? itemList.map((item) => item.name) : []}
               // value={itemList ? itemList.find((item) => item.id === selectedID?.name || null)}

@@ -57,7 +57,7 @@ interface Item {
 
 const Item_list = (props: Props) => {
   const { itemList,selectedID } = props;
-  console.log(selectedID);
+
   const copyItemList = itemList?.map((item) => ({
     ...item,
     current_inventory: item.current_inventory.map((inv: any) => ({ ...inv })),

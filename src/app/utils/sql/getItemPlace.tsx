@@ -4,7 +4,8 @@ const supabase = createClient();
 const getItemPlace = async () => {
   const { data , error } = await supabase.from("item_place").select(
     `*`
-  );
+  ).order('item_place', { ascending: true });
+console.log(data);
 
   if (error) {
     console.error("Error getting item place:", error.message);

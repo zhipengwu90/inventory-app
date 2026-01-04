@@ -275,6 +275,7 @@ const ShoppingListPage = (props: Props) => {
                 (item: any) => item.item_list.shopping_place === place
               );
 
+
               // Group by item_place (default to "Other" if falsy)
               const groupedByPlace = placeItems.reduce((acc: any, item: any) => {
                 const groupKey = item.item_list.item_place || "Other";
@@ -282,6 +283,15 @@ const ShoppingListPage = (props: Props) => {
                 acc[groupKey].push(item);
                 return acc;
               }, {});
+              
+              // Sort by keys
+              const sortedGroupedByPlace = Object.keys(groupedByPlace)
+                .sort()
+                .reduce((acc: any, key: string) => {
+                  acc[key] = groupedByPlace[key];
+                  return acc;
+                }, {});
+              console.log('groupedByPlace', sortedGroupedByPlace);
 
               // Calculate the sum for this place
               const placeSum = placeItems.reduce(
@@ -296,7 +306,7 @@ const ShoppingListPage = (props: Props) => {
                     {place}
                   </div>
                   {/* Render each group */}
-                  {Object.entries(groupedByPlace).map(([group, items]) => (
+                  {Object.entries(sortedGroupedByPlace).map(([group, items]) => (
                     <div key={group} className="mb-2">
                       <div className="font-semibold text-sm text-center text-blue-700 mb-1">{group}</div>
                       {(items as any[]).map((item: any) => (
