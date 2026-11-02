@@ -74,9 +74,9 @@ export default function InventoryPage() {
   const [detail, setDetail] = useState<Item | null>(null);
   const [editing, setEditing] = useState<{ item: Item | null } | null>(null);
   const [adjusting, setAdjusting] = useState<Item | null>(null);
-  const [confirm, setConfirm] = useState<"discard" | "trip" | "replace" | null>(
-    null,
-  );
+  const [confirm, setConfirm] = useState<
+    "discard" | "trip" | "replace" | "stale" | null
+  >(null);
   const [saving, setSaving] = useState(false);
 
   const load = useCallback(async () => {
@@ -87,9 +87,11 @@ export default function InventoryPage() {
       ]);
       setItems(nextItems);
       setList(nextList);
+      return { items: nextItems, list: nextList };
     } catch (error) {
       toast.error(error);
       setItems((current) => current ?? []);
+      return null;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -99,6 +101,8 @@ export default function InventoryPage() {
   }, [load]);
 
   const onList = useMemo(() => new Set(list.map((e) => e.item_id)), [list]);
+  // Items already checked off, meaning a trip is under way.
+  const picked = list.filter((e) => e.shopped).length;
   const low = useMemo(
     () => (items ?? []).filter((i) => needOf(i) > 0),
     [items],
@@ -198,6 +202,7 @@ export default function InventoryPage() {
   const saveCounts = async () => {
     setSaving(true);
     const byId = new Map((items ?? []).map((i) => [i.id, i]));
+    let saved = false;
     try {
       await Promise.all([
         ...Object.entries(minimums)
@@ -209,11 +214,21 @@ export default function InventoryPage() {
       ]);
       toast.success("Inventory saved");
       endMode();
+      saved = true;
     } catch (error) {
       toast.error(error);
     }
-    await load();
+    const next = await load();
     setSaving(false);
+    if (saved && next && next.list.length > 0) setConfirm("stale");
+  };
+
+  // An existing list was built from the old minimum and doesn't update itself.
+  const onItemSaved = async (before: Item | null) => {
+    const next = await load();
+    const after = next?.items.find((i) => i.id === before?.id);
+    if (before && after && minOf(after) !== minOf(before) && next!.list.length > 0)
+      setConfirm("stale");
   };
 
   const createList = async () => {
@@ -530,7 +545,7 @@ export default function InventoryPage() {
         item={editing?.item ?? null}
         lookups={lookups}
         onClose={() => setEditing(null)}
-        onSaved={() => load()}
+        onSaved={() => onItemSaved(editing?.item ?? null)}
         onDeleted={() => {
           setDetail(null);
           load();
@@ -581,11 +596,37 @@ export default function InventoryPage() {
       <Confirm
         open={confirm === "replace"}
         title="Replace the current shopping list?"
-        message={`Your shopping list already has ${list.length} items. Creating a new list removes them.`}
+        message={`Your shopping list already has ${list.length} items. Creating a new list removes them.${
+          picked > 0
+            ? ` Shopping has started, and the ${picked} item${picked === 1 ? "" : "s"} checked off so far will be lost.`
+            : ""
+        }`}
         confirmLabel="Replace List"
         destructive
         onConfirm={createList}
         onClose={() => setConfirm(null)}
+      />
+      <Confirm
+        open={confirm === "stale"}
+        title="Shopping List Is Out of Date"
+        message={`Your shopping list was created before these changes, so it won't reflect them. Rebuild the list to include them.${
+          picked > 0
+            ? ` Shopping has started: rebuilding clears the ${picked} item${picked === 1 ? "" : "s"} checked off so far.`
+            : ""
+        }`}
+        confirmLabel="Rebuild List"
+        destructive={picked > 0}
+        onConfirm={() => {
+          setDetail(null);
+          startPlanning();
+        }}
+        onClose={() => setConfirm(null)}
+        showCancel={false}
+        extra={
+          <Btn variant="plain" onClick={() => setConfirm(null)}>
+            Keep Current List
+          </Btn>
+        }
       />
     </div>
   );
