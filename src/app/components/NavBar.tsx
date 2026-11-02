@@ -162,7 +162,7 @@ const NavBar = () => {
 
   return (
     <>
-      <header className="sticky top-0 z-30 md:static border-b border-black/5 bg-[#F2F2F7]/85 backdrop-blur">
+      <header className="sticky top-0 z-30 md:relative border-b border-black/5 bg-[#F2F2F7]/85 backdrop-blur">
         <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-6 sm:px-4">
           <Link
             href="/"
