@@ -1,8 +1,7 @@
 import React from "react";
 import { redirect } from "next/navigation";
-import ShoppingListPage from "./parts/ShoppingListPage";
+import ShoppingPage from "./ShoppingPage";
 import { createClient } from "../utils/supabase/server";
-type Props = {};
 
 export default async function ShoppingList() {
   const supabase = await createClient();
@@ -12,11 +11,5 @@ export default async function ShoppingList() {
     redirect("/login");
   }
 
-  return (
-    <div
-     className=" px-32 xl:px-24 lg:px-16 md:px-12 sm:px-6 xs:px-2  "
-    >
-      <ShoppingListPage user={data.user} />
-    </div>
-  );
+  return <ShoppingPage />;
 }

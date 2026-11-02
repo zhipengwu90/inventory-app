@@ -1,107 +1,101 @@
 "use client";
-import React, { useState, useEffect, Suspense } from "react";
-import TextField from "@mui/material/TextField";
-import Button from "@mui/material/Button";
+import React, { useState } from "react";
+import { useRouter } from "next/navigation";
+import { AlertCircle, Lock, Mail, Package } from "lucide-react";
 import { login } from "./actions";
-import { useSearchParams, useRouter } from "next/navigation";
+import { Btn } from "../../components/restock/ui";
 
-import CircularProgress from "@mui/material/CircularProgress";
-
-type Props = {};
-
-const LoginPage = (props: Props) => {
+const LoginPage = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [errorMessage, setErrorMessage] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
-  const loginHandler = async () => {
+
+  const canSubmit = email.trim() !== "" && password !== "" && !isLoading;
+
+  const loginHandler = async (event?: React.FormEvent) => {
+    event?.preventDefault();
+    if (!canSubmit) return;
     setIsLoading(true);
-    setErrorMessage(""); // Clear previous error message
-    if (email.trim() === "" || password.trim() === "") {
-      console.log("Email and password cannot be empty.");
-      setIsLoading(false);
-      return;
-    }
+    setErrorMessage("");
     try {
-      const result = await login(email, password);
+      const result = await login(email.trim(), password);
       if (result.success) {
         router.push("/");
-      } else {
-        setIsLoading(false);
-        setErrorMessage(result.message || "An unknown error occurred.");
+        router.refresh();
+        return;
       }
+      setErrorMessage(result.message || "An unknown error occurred.");
     } catch (error) {
       console.error("Login failed:", error);
-      setIsLoading(false);
       setErrorMessage("Invalid login credentials. Please try again.");
     }
-  };
-
-  const handleKeyPress = (event: React.KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === "Enter") {
-      loginHandler();
-    }
+    setIsLoading(false);
   };
 
   return (
-    <div className="flex justify-center items-center h-[80vh]">
-      {isLoading && (
-        <div className="absolute top-0 left-0 w-full h-full flex items-center justify-center bg-black bg-opacity-50 z-50">
-          <CircularProgress color="inherit" />
+    <div className="flex min-h-[70vh] items-center justify-center py-10">
+      <form onSubmit={loginHandler} className="w-full max-w-sm space-y-8">
+        <div className="flex flex-col items-center gap-3 text-center">
+          <span className="flex h-20 w-20 items-center justify-center rounded-3xl bg-brand text-white shadow-lg shadow-brand/30">
+            <Package className="h-10 w-10" />
+          </span>
+          <h1 className="text-3xl font-bold">Restock</h1>
+          <p className="text-sm text-gray-500">
+            Know what you have. Buy what you need.
+          </p>
         </div>
-      )}
 
-      <div className="border border-1 bg-white flex flex-col gap-3 justify-around items-center rounded-lg w-1/2 h-2/3 lg:w-3/4 lg:h-3/4 py-5">
-        <div className="text-dark text-xl font-bold"> Admin Login </div>
-        <div className=" flex flex-col gap-3 w-full justify-center items-center ">
-          <TextField
-            label="Email"
-            color="primary"
-            type="email"
-            placeholder="Enter your email"
-            className="w-1/2 lg:w-4/5  z-0"
-            onChange={(e) => {
-              setEmail(e.target.value);
-              setErrorMessage("");
-            }}
-            onKeyDown={handleKeyPress}
-          />
-          <TextField
-            label="Password"
-            type="password"
-            placeholder="Enter your password"
-            color="primary"
-            className="w-1/2 lg:w-4/5 z-0 "
-            onChange={(e) => {
-              setPassword(e.target.value);
-              setErrorMessage("");
-            }}
-            onKeyDown={handleKeyPress}
-          />
-
+        <div className="space-y-3">
+          <label className="flex h-14 items-center gap-3 rounded-2xl bg-white px-4 ring-brand focus-within:ring-2">
+            <Mail className="h-5 w-5 text-gray-400" />
+            <input
+              type="email"
+              autoComplete="username"
+              placeholder="Email"
+              value={email}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                setErrorMessage("");
+              }}
+              className="w-full bg-transparent text-base outline-none placeholder:text-gray-400"
+            />
+          </label>
+          <label className="flex h-14 items-center gap-3 rounded-2xl bg-white px-4 ring-brand focus-within:ring-2">
+            <Lock className="h-5 w-5 text-gray-400" />
+            <input
+              type="password"
+              autoComplete="current-password"
+              placeholder="Password"
+              value={password}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                setErrorMessage("");
+              }}
+              className="w-full bg-transparent text-base outline-none placeholder:text-gray-400"
+            />
+          </label>
           {errorMessage && (
-            <div className="text-red-500 text-sm font-bold">{errorMessage}</div>
+            <p className="flex items-center gap-1.5 px-1 text-sm text-red-600">
+              <AlertCircle className="h-4 w-4 shrink-0" />
+              {errorMessage}
+            </p>
           )}
         </div>
 
-        <Button
-          disabled={email === "" || password === ""}
-          onClick={loginHandler}
-          variant="contained"
-          className="z-0"
+        <Btn
+          type="submit"
+          size="lg"
+          className="w-full"
+          disabled={!canSubmit}
+          loading={isLoading}
         >
-          Log in
-        </Button>
-      </div>
+          Sign In
+        </Btn>
+      </form>
     </div>
   );
 };
-
-// const LoginPage = () => (
-//   <Suspense fallback={<div>Loading...</div>}>
-//     <Login />
-//   </Suspense>
-// );
 
 export default LoginPage;
