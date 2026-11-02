@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 
 import { createClient } from "../utils/supabase/server";
-import DataPage from "./shoppingList/DataPage";
+import InventoryPage from "./InventoryPage";
 
 export default async function HomePage() {
   const supabase = await createClient();
@@ -11,9 +11,5 @@ export default async function HomePage() {
     redirect("/login");
   }
 
-  return (
-    <div className="px-24 xl:px-24 lg:px-16 md:px-12 sm:px-6 xs:px-2   ">
-      <DataPage />
-    </div>
-  );
+  return <InventoryPage />;
 }

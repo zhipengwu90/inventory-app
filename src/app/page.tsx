@@ -1,5 +1,3 @@
-import Image from "next/image";
-
 import HomePage from "./home/HomePage";
 import { redirect } from "next/navigation";
 
@@ -16,9 +14,5 @@ export default async function Home() {
   // if (!error || data?.user) {
   //   redirect("/home");
   // }
-  return (
-    <div>
-      <HomePage />;
-    </div>
-  );
+  return <HomePage />;
 }

@@ -1,16 +1,13 @@
-import React from "react";
+import { Package } from "lucide-react";
 
-type Props = {};
-
-const NavBarOut = (props: Props) => {
+const NavBarOut = () => {
   return (
-    <header className="sticky z-20 top-0 w-full px-32 py-4  xl:px-24 lg:px-16 md:px-12 sm:px-8 xs:px-6    font-semibold text-lg flex items-center justify-between text-dark bg-light  bg-opacity-90">
-      <div
-        className="
-        font-bold text-xl
-      "
-      >
-        Inventory Management
+    <header className="sticky top-0 z-30 md:static border-b border-black/5 bg-[#F2F2F7]/85 backdrop-blur">
+      <div className="mx-auto flex h-14 max-w-5xl items-center gap-2 px-6 text-[17px] font-bold sm:px-4">
+        <span className="flex h-8 w-8 items-center justify-center rounded-[10px] bg-brand text-white">
+          <Package className="h-[18px] w-[18px]" />
+        </span>
+        Restock
       </div>
     </header>
   );

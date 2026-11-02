@@ -4,6 +4,8 @@ import "./globals.css";
 import NavBar from "./components/NavBar";
 import NavBarOut from "./components/NavBarOut";
 import Footer from "./components/Footer";
+import { ToastProvider } from "./components/restock/Toast";
+import StoreGate from "./components/restock/StoreGate";
 import { createClient } from "./utils/supabase/server";
 import { redirect } from "next/navigation";
 
@@ -21,9 +23,8 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Inventory Management",
-  description:
-    "Inventory Management is a web application that helps you manage your inventory.",
+  title: "Restock",
+  description: "Know what you have at home, and buy what you need.",
 };
 
 export default async function RootLayout({
@@ -44,11 +45,14 @@ export default async function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        {result ? <NavBar /> : <NavBarOut />}
-        <div id="modal-root"></div>
-        {children}
-
-        <Footer />
+        <ToastProvider>
+          {result ? <NavBar /> : <NavBarOut />}
+          <div id="modal-root"></div>
+          <main className="mx-auto min-h-[calc(100vh-8rem)] max-w-5xl px-6 pb-12 pt-6 md:pb-28 sm:px-4">
+            {result ? <StoreGate>{children}</StoreGate> : children}
+          </main>
+          <Footer />
+        </ToastProvider>
       </body>
     </html>
   );
