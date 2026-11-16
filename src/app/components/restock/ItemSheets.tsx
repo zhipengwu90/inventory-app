@@ -5,11 +5,9 @@ import React, { useEffect, useRef, useState } from "react";
 import {
   AlertTriangle,
   Camera,
-  Check,
   Clock,
   MapPin,
   Plus,
-  ShoppingCart,
   Square,
   Store,
   Tag,
@@ -25,6 +23,7 @@ import {
   minOf,
   needOf,
   recordDate,
+  ShoppingPlace,
   stockOf,
 } from "@/app/utils/types";
 import {
@@ -53,18 +52,16 @@ import { Lookups } from "./useLookups";
 
 export function ItemDetailSheet({
   item,
-  onList,
+  places = [],
   onClose,
   onEdit,
-  onAddToList,
 }: {
   item: Item | null;
-  onList: boolean;
+  /** Shopping places, to name the backup place. */
+  places?: ShoppingPlace[];
   onClose: () => void;
   onEdit: () => void;
-  onAddToList: (item: Item) => Promise<void>;
 }) {
-  const [adding, setAdding] = useState(false);
   const [zoom, setZoom] = useState(false);
   if (!item) return null;
 
@@ -85,6 +82,11 @@ export function ItemDetailSheet({
       "#34C759",
     ],
   ];
+  const backupPlace = places.find(
+    (p) => p.id === item.backup_shopping_place_id,
+  )?.name;
+  if (backupPlace)
+    info.splice(2, 0, ["Backup place", backupPlace, Store, "#FF3B30"]);
   if (lastCounted)
     info.push([
       "Last counted",
@@ -143,27 +145,6 @@ export function ItemDetailSheet({
         ))}
       </div>
 
-      <Btn
-        size="lg"
-        className="mt-4 w-full"
-        disabled={onList}
-        loading={adding}
-        onClick={async () => {
-          setAdding(true);
-          await onAddToList(item);
-          setAdding(false);
-        }}
-      >
-        {onList ? (
-          <Check className="h-5 w-5" />
-        ) : (
-          <ShoppingCart className="h-5 w-5" />
-        )}
-        {onList
-          ? "On Shopping List"
-          : `Add ${Math.max(need, 1)} to Shopping List`}
-      </Btn>
-
       <Group className="mt-4">
         {info.map(([label, value, Icon, tint]) => (
           <div key={label} className="flex items-center gap-3 px-3 py-2.5">
@@ -217,6 +198,7 @@ const emptyDraft: ItemDraft = {
   item_category: "",
   shopping_place_id: null,
   item_place_id: null,
+  backup_shopping_place_id: null,
   comment: "",
   img_url: "",
   min_amount: 0,
@@ -263,6 +245,7 @@ export function ItemEditorSheet({
             item_category: item.item_category ?? "",
             shopping_place_id: item.shopping_place_id,
             item_place_id: item.item_place_id,
+            backup_shopping_place_id: item.backup_shopping_place_id ?? null,
             comment: item.comment ?? "",
             img_url: item.img_url ?? "",
             min_amount: minOf(item),
@@ -299,6 +282,11 @@ export function ItemEditorSheet({
       ...d,
       shopping_place_id: placeId,
       item_place_id: keepArea ? d.item_place_id : null,
+      // The backup can't be the usual place itself.
+      backup_shopping_place_id:
+        d.backup_shopping_place_id === placeId
+          ? null
+          : d.backup_shopping_place_id,
     }));
   };
 
@@ -509,6 +497,33 @@ export function ItemEditorSheet({
           >
             <Plus className="h-4 w-4" /> New Area…
           </button>
+        </Group>
+
+        <Group
+          className="mt-5"
+          footer="If the usual place is sold out or stops selling it, the shopping list reminds you to check here."
+        >
+          <Field label="Backup place">
+            <select
+              className={selectClass}
+              value={draft.backup_shopping_place_id ?? ""}
+              onChange={(e) =>
+                set(
+                  "backup_shopping_place_id",
+                  e.target.value ? Number(e.target.value) : null,
+                )
+              }
+            >
+              <option value="">None</option>
+              {lookups.places
+                .filter((p) => p.id !== draft.shopping_place_id)
+                .map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                  </option>
+                ))}
+            </select>
+          </Field>
         </Group>
 
         <Group

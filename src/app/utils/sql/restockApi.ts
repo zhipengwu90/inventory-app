@@ -71,6 +71,7 @@ const draftRow = (draft: ItemDraft) => ({
   item_category: draft.item_category,
   shopping_place_id: draft.shopping_place_id,
   item_place_id: draft.item_place_id,
+  backup_shopping_place_id: draft.backup_shopping_place_id,
   comment: draft.comment,
   img_url: draft.img_url,
   min_amount: draft.min_amount,
@@ -177,7 +178,12 @@ export const uploadImage = async (
   check(
     await supabase.storage
       .from("item_photo_v2")
-      .upload(fileName, compressed, { contentType: "image/jpeg" }),
+      // File names are unique per upload, so browsers can cache them for a year
+      // instead of re-downloading (and costing egress) every hour.
+      .upload(fileName, compressed, {
+        contentType: "image/jpeg",
+        cacheControl: "31536000",
+      }),
   );
   return supabase.storage.from("item_photo_v2").getPublicUrl(fileName).data
     .publicUrl;

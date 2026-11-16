@@ -4,6 +4,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
+  AlertTriangle,
   BadgeCheck,
   Check,
   Circle,
@@ -271,30 +272,56 @@ export default function ShoppingPage() {
               (a, b) =>
                 a === "Other" ? 1 : b === "Other" ? -1 : a.localeCompare(b),
             );
+            const tint = colorFor(store);
             return (
-              <section key={store}>
-                <div className="mb-1.5 flex items-center gap-2 px-4 text-sm font-semibold text-gray-500">
-                  <Store
-                    className="h-4 w-4"
-                    style={{ color: colorFor(store) }}
-                  />
-                  {store}
-                  <span className="text-gray-400">
+              // Each store sits on a panel tinted with its own colour.
+              <section
+                key={store}
+                className="rounded-3xl p-2"
+                style={{ background: `${tint}1A` }}
+              >
+                <div className="flex items-center gap-2.5 px-2 pb-2.5 pt-1.5">
+                  <span
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-white"
+                    style={{ background: tint }}
+                  >
+                    <Store className="h-5 w-5" />
+                  </span>
+                  <span className="min-w-0 truncate text-xl font-bold">
+                    {store}
+                  </span>
+                  <span
+                    className="shrink-0 rounded-full bg-white/70 px-2 py-0.5 text-sm font-semibold tabular-nums"
+                    style={{ color: tint }}
+                  >
                     {entries.filter((e) => e.shopped).length}/{entries.length}
                   </span>
                   {subtotal > 0 && (
-                    <span className="ml-auto tabular-nums">
+                    <span className="ml-auto shrink-0 text-base font-semibold tabular-nums text-gray-700">
                       {currency(subtotal)}
                     </span>
                   )}
                 </div>
                 <div className="overflow-hidden rounded-2xl bg-white">
-                  {locations.map((location) => (
-                    <div key={location}>
+                  {locations.map((location, index) => (
+                    <div
+                      key={location}
+                      // A clear line between areas.
+                      className={index > 0 ? "border-t-2 border-black/10" : ""}
+                    >
                       {(locations.length > 1 || location !== "Other") && (
-                        <div className="flex items-center gap-1 px-4 pb-1 pt-3 text-xs font-semibold text-gray-500">
-                          <MapPin className="h-3 w-3" />
+                        <div className="flex items-center gap-1.5 bg-gray-50 px-4 py-2 text-base font-bold text-gray-800">
+                          <MapPin
+                            className="h-4 w-4 shrink-0"
+                            style={{ color: tint }}
+                          />
                           {location}
+                          <span className="ml-auto text-sm font-medium text-gray-400">
+                            {
+                              entries.filter((e) => locationOf(e) === location)
+                                .length
+                            }
+                          </span>
                         </div>
                       )}
                       <div className="divide-y divide-black/5">
@@ -304,6 +331,13 @@ export default function ShoppingPage() {
                             <ShoppingRow
                               key={entry.id}
                               entry={entry}
+                              backupPlace={
+                                lookups.places.find(
+                                  (p) =>
+                                    p.id ===
+                                    entry.item_list?.backup_shopping_place_id,
+                                )?.name
+                              }
                               onToggle={() => toggle(entry)}
                               onAmount={
                                 isAdmin ? () => setAmountFor(entry) : undefined
@@ -388,10 +422,9 @@ export default function ShoppingPage() {
       />
       <ItemDetailSheet
         item={detail}
-        onList
+        places={lookups.places}
         onClose={() => setDetail(null)}
         onEdit={() => setEditing(detail)}
-        onAddToList={async () => {}}
       />
       <ItemEditorSheet
         open={!!editing}
@@ -425,12 +458,15 @@ const finishMessage = (picked: number, unpicked: number) => {
 
 function ShoppingRow({
   entry,
+  backupPlace,
   onToggle,
   onAmount,
   onOpen,
   onRemove,
 }: {
   entry: ShoppingEntry;
+  /** Another place to check if this one is sold out. */
+  backupPlace?: string;
   onToggle: () => void;
   /** Left out for shoppers, who can't change the list. */
   onAmount?: () => void;
@@ -476,6 +512,14 @@ function ShoppingRow({
           {item?.price != null && (
             <div className="text-xs text-gray-500">
               {currency(Number(item.price))} each
+            </div>
+          )}
+          {backupPlace && (
+            <div
+              className={`mt-0.5 flex items-center gap-1 text-xs font-semibold ${done ? "text-gray-400" : "text-red-600"}`}
+            >
+              <AlertTriangle className="h-3.5 w-3.5 shrink-0" />
+              May need to check at {backupPlace}
             </div>
           )}
         </div>

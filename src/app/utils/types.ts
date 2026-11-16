@@ -24,6 +24,9 @@ export interface Item {
   item_place: string | null;
   shopping_place_id: number | null;
   item_place_id: number | null;
+  /** Where to look if the usual shopping place is sold out. Optional so clients
+   * keep working against a database that doesn't have the column yet. */
+  backup_shopping_place_id?: number | null;
   comment: string | null;
   img_url: string | null;
   min_amount: number | null;
@@ -76,6 +79,8 @@ export interface ItemDraft {
   shopping_place_id: number | null;
   /** An area in the chosen shopping place. */
   item_place_id: number | null;
+  /** Another shopping place to check if the usual one is sold out. */
+  backup_shopping_place_id: number | null;
   comment: string;
   img_url: string;
   min_amount: number;

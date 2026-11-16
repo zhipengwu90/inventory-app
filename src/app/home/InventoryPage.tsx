@@ -9,6 +9,7 @@ import {
   Circle,
   ListChecks,
   Package,
+  Minus,
   Plus,
   Search,
   ShoppingCart,
@@ -24,7 +25,6 @@ import {
   stockOf,
 } from "../utils/types";
 import {
-  addToShoppingList,
   fetchItems,
   fetchShoppingList,
   recordCount,
@@ -148,7 +148,7 @@ export default function InventoryPage() {
 
   // Warn before leaving the page with unsaved counts.
   useEffect(() => {
-    if (mode !== "count" || changeCount === 0) return;
+    if (mode === "browse" || changeCount === 0) return;
     const warn = (e: BeforeUnloadEvent) => e.preventDefault();
     window.addEventListener("beforeunload", warn);
     return () => window.removeEventListener("beforeunload", warn);
@@ -239,7 +239,14 @@ export default function InventoryPage() {
         (names.get(+a) ?? "").localeCompare(names.get(+b) ?? ""),
       )
       .map(([id, amount]) => ({ item_id: +id, amount: Math.max(amount, 1) }));
+    const byId = new Map((items ?? []).map((i) => [i.id, i]));
     try {
+      // Stock edited while planning ("Have") is saved as a new count.
+      await Promise.all(
+        Object.entries(counts)
+          .filter(([id, v]) => byId.get(+id) && stockOf(byId.get(+id)!) !== v)
+          .map(([id, v]) => recordCount(+id, v, stockOf(byId.get(+id)!))),
+      );
       await replaceShoppingList(rows);
       window.dispatchEvent(new Event(LIST_CHANGED));
       toast.success(`Shopping list ready · ${rows.length} items`);
@@ -249,17 +256,6 @@ export default function InventoryPage() {
       toast.error(error);
     }
     setSaving(false);
-  };
-
-  const addOne = async (item: Item) => {
-    try {
-      await addToShoppingList(item.id, Math.max(needOf(item), 1));
-      window.dispatchEvent(new Event(LIST_CHANGED));
-      toast.success(`${item.name} added to list`);
-      setList(await fetchShoppingList());
-    } catch (error) {
-      toast.error(error);
-    }
   };
 
   // MARK: Render
@@ -295,7 +291,7 @@ export default function InventoryPage() {
               aria-label="Count Stock"
             >
               <ListChecks className="h-[18px] w-[18px]" />
-              <span className="sm:hidden">Count Stock</span>
+              <span>Count Stock</span>
             </Btn>
             <Btn
               onClick={() => setEditing({ item: null })}
@@ -309,7 +305,7 @@ export default function InventoryPage() {
           <Btn
             variant="outline"
             onClick={() =>
-              mode === "count" && changeCount > 0
+              changeCount > 0
                 ? setConfirm("discard")
                 : endMode()
             }
@@ -359,7 +355,7 @@ export default function InventoryPage() {
           )}
           {mode === "count"
             ? "Tap − or + to set what's on the shelf. Tap an item to change its minimum."
-            : "Low items are already selected. Tap to add or remove, and adjust how many to buy."}
+            : "Low items are already selected. Tap to add or remove, and adjust how many to buy. Use − or + next to Have to update stock."}
         </div>
       )}
 
@@ -477,6 +473,23 @@ export default function InventoryPage() {
                       key={item.id}
                       item={item}
                       amount={plan[item.id]}
+                      stock={counts[item.id] ?? stockOf(item) ?? 0}
+                      onStock={(v) => {
+                        const now = counts[item.id] ?? stockOf(item) ?? 0;
+                        const before = Math.max(0, minOf(item) - now);
+                        const after = Math.max(0, minOf(item) - v);
+                        setCounts((c) => ({ ...c, [item.id]: v }));
+                        // Keep an untouched buy amount in step with the new need.
+                        setPlan((p) => {
+                          const cur = p[item.id];
+                          if (
+                            after > 0 &&
+                            (cur === undefined || cur === Math.max(before, 1))
+                          )
+                            return { ...p, [item.id]: after };
+                          return p;
+                        });
+                      }}
                       onChange={(amount) =>
                         setPlan((p) => {
                           const next = { ...p };
@@ -535,10 +548,9 @@ export default function InventoryPage() {
       {/* Dialogs */}
       <ItemDetailSheet
         item={detail ? (items.find((i) => i.id === detail.id) ?? null) : null}
-        onList={!!detail && onList.has(detail.id)}
+        places={lookups.places}
         onClose={() => setDetail(null)}
         onEdit={() => setEditing({ item: detail })}
-        onAddToList={addOne}
       />
       <ItemEditorSheet
         open={!!editing}
@@ -777,21 +789,30 @@ function CountRow({
 function PlanRow({
   item,
   amount,
+  stock,
+  onStock,
   onChange,
 }: {
   item: Item;
   amount: number | undefined;
+  stock: number;
+  onStock: (stock: number) => void;
   onChange: (amount: number | undefined) => void;
 }) {
   const selected = amount !== undefined;
+  const need = Math.max(0, minOf(item) - stock);
+  const changed = stock !== (stockOf(item) ?? 0);
+  const toggle = () =>
+    onChange(selected ? undefined : Math.max(need, 1));
+  const mini =
+    "flex h-6 w-6 items-center justify-center rounded-full bg-black/5 text-brand disabled:text-gray-300";
   return (
     <div className="flex items-center gap-3 px-4 py-2">
       <button
-        onClick={() =>
-          onChange(selected ? undefined : Math.max(needOf(item), 1))
-        }
-        className="flex min-w-0 flex-1 items-center gap-3 text-left"
+        onClick={toggle}
+        className="flex shrink-0 items-center gap-3"
         aria-pressed={selected}
+        aria-label={`Select ${item.name}`}
       >
         {selected ? (
           <Check
@@ -807,15 +828,45 @@ function PlanRow({
           category={item.item_category}
           size={38}
         />
-        <div className="min-w-0">
-          <div className="truncate font-medium">{item.name}</div>
-          <div
-            className={`text-xs ${needOf(item) > 0 ? "text-low" : "text-gray-500"}`}
-          >
-            Have {stockOf(item) ?? 0} · min {minOf(item)}
-          </div>
-        </div>
       </button>
+      <div className="min-w-0 flex-1">
+        <button
+          onClick={toggle}
+          className="block w-full truncate text-left font-medium"
+        >
+          {item.name}
+        </button>
+        <div
+          className={`mt-0.5 flex items-center gap-1.5 text-xs ${need > 0 ? "text-low" : "text-gray-500"}`}
+          role="group"
+          aria-label={`${item.name} in stock`}
+        >
+          Have
+          <button
+            type="button"
+            aria-label="Decrease stock"
+            disabled={stock <= 0}
+            onClick={() => onStock(Math.max(0, stock - 1))}
+            className={mini}
+          >
+            <Minus className="h-3 w-3" strokeWidth={3} />
+          </button>
+          <span
+            className={`min-w-[1rem] text-center font-semibold tabular-nums ${changed ? "text-brand" : ""}`}
+          >
+            {stock}
+          </span>
+          <button
+            type="button"
+            aria-label="Increase stock"
+            onClick={() => onStock(stock + 1)}
+            className={mini}
+          >
+            <Plus className="h-3 w-3" strokeWidth={3} />
+          </button>
+          <span>· min {minOf(item)}</span>
+        </div>
+      </div>
       {selected && (
         <Stepper
           value={amount!}
