@@ -550,7 +550,14 @@ export default function InventoryPage() {
         item={detail ? (items.find((i) => i.id === detail.id) ?? null) : null}
         places={lookups.places}
         onClose={() => setDetail(null)}
-        onEdit={() => setEditing({ item: detail })}
+        onEdit={() =>
+          // Use the reloaded item, not the snapshot taken when the sheet opened.
+          setEditing({
+            item: detail
+              ? (items.find((i) => i.id === detail.id) ?? detail)
+              : null,
+          })
+        }
       />
       <ItemEditorSheet
         open={!!editing}
