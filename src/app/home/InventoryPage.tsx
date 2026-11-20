@@ -1,5 +1,5 @@
 "use client";
-// Inventory: browse stock, count it ("Count Stock") and build a shopping list
+// Inventory: browse stock, set what to buy ("Shopping Need") and build a shopping list
 // from low items. Mirrors the iOS InventoryView.
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -25,10 +25,13 @@ import {
   stockOf,
 } from "../utils/types";
 import {
+  addToShoppingList,
   fetchItems,
   fetchShoppingList,
   recordCount,
+  removeFromShoppingList,
   replaceShoppingList,
+  setShoppingAmount,
   updateMinAmount,
 } from "../utils/sql/restockApi";
 import {
@@ -37,7 +40,6 @@ import {
   ItemEditorSheet,
 } from "../components/restock/ItemSheets";
 import {
-  Badge,
   Btn,
   Confirm,
   Empty,
@@ -70,12 +72,14 @@ export default function InventoryPage() {
   const [counts, setCounts] = useState<Record<number, number>>({});
   const [minimums, setMinimums] = useState<Record<number, number>>({});
   const [plan, setPlan] = useState<Record<number, number>>({});
+  // Shopping Need: how many of each item to buy. Each one also comes off stock.
+  const [buys, setBuys] = useState<Record<number, number>>({});
 
   const [detail, setDetail] = useState<Item | null>(null);
   const [editing, setEditing] = useState<{ item: Item | null } | null>(null);
   const [adjusting, setAdjusting] = useState<Item | null>(null);
   const [confirm, setConfirm] = useState<
-    "discard" | "trip" | "replace" | "stale" | null
+    "discard" | "replace" | "stale" | null
   >(null);
   const [saving, setSaving] = useState(false);
 
@@ -133,18 +137,26 @@ export default function InventoryPage() {
     });
   }, [items, filter, search]);
 
-  const changeCount = useMemo(() => {
-    const byId = new Map((items ?? []).map((i) => [i.id, i]));
-    const ids = new Set<number>();
-    Object.entries(counts).forEach(
-      ([id, v]) =>
-        byId.get(+id) && stockOf(byId.get(+id)!) !== v && ids.add(+id),
-    );
-    Object.entries(minimums).forEach(
-      ([id, v]) => byId.get(+id) && minOf(byId.get(+id)!) !== v && ids.add(+id),
-    );
-    return ids.size;
-  }, [items, counts, minimums]);
+  // Shopping Need math. "Have" and "Min" include unsaved edits from the sheet.
+  const listAmount = useMemo(
+    () => new Map(list.map((e) => [e.item_id, e.amount])),
+    [list],
+  );
+  const haveOf = (item: Item) => counts[item.id] ?? stockOf(item) ?? 0;
+  const minNow = (item: Item) => minimums[item.id] ?? minOf(item);
+  // Untouched rows show what's already on the list, or else Min − Have.
+  const autoBuyOf = (item: Item) =>
+    listAmount.get(item.id) ?? Math.max(0, minNow(item) - haveOf(item));
+  const buyOf = (item: Item) => buys[item.id] ?? autoBuyOf(item);
+  // Each one bought above the auto amount comes off Have, never below 0.
+  const leftOf = (item: Item) =>
+    Math.max(0, haveOf(item) - Math.max(0, buyOf(item) - autoBuyOf(item)));
+  const rowChanged = (item: Item) =>
+    leftOf(item) !== (stockOf(item) ?? 0) ||
+    minNow(item) !== minOf(item) ||
+    (mode === "count" && buyOf(item) !== (listAmount.get(item.id) ?? 0));
+
+  const changeCount = (items ?? []).filter(rowChanged).length;
 
   // Warn before leaving the page with unsaved counts.
   useEffect(() => {
@@ -161,13 +173,13 @@ export default function InventoryPage() {
     return () => setNavLock({ locked: false });
   }, [mode]);
 
-  // Opened from the empty Shopping page with ?plan=1.
+  // Opened from the empty Shopping page with ?need=1.
   useEffect(() => {
     if (
       items &&
-      new URLSearchParams(window.location.search).get("plan") === "1"
+      new URLSearchParams(window.location.search).get("need") === "1"
     ) {
-      startPlanning();
+      startCounting();
       router.replace("/");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -180,12 +192,7 @@ export default function InventoryPage() {
     setCounts({});
     setMinimums({});
     setPlan({});
-  };
-
-  const requestCounting = () => {
-    // Finishing an open trip later would add bought amounts on top of the new count.
-    if (list.length > 0) setConfirm("trip");
-    else startCounting();
+    setBuys({});
   };
 
   const startCounting = () => {
@@ -202,25 +209,38 @@ export default function InventoryPage() {
   const saveCounts = async () => {
     setSaving(true);
     const byId = new Map((items ?? []).map((i) => [i.id, i]));
-    let saved = false;
+    const entries = new Map(list.map((e) => [e.item_id, e]));
+    const changed = (items ?? []).filter(rowChanged);
+    // Buying more than the minimum raises the minimum to match.
+    const newMin = (item: Item) => Math.max(minNow(item), buyOf(item));
     try {
       await Promise.all([
-        ...Object.entries(minimums)
-          .filter(([id, v]) => byId.get(+id) && minOf(byId.get(+id)!) !== v)
-          .map(([id, v]) => updateMinAmount(+id, v)),
-        ...Object.entries(counts)
-          .filter(([id, v]) => byId.get(+id) && stockOf(byId.get(+id)!) !== v)
-          .map(([id, v]) => recordCount(+id, v, stockOf(byId.get(+id)!))),
+        ...(items ?? [])
+          .filter((item) => newMin(item) !== minOf(item))
+          .map((item) => updateMinAmount(item.id, newMin(item))),
+        ...changed
+          .filter((item) => leftOf(item) !== (stockOf(item) ?? 0))
+          .map((item) => recordCount(item.id, leftOf(item), stockOf(item))),
+        // The shopping list amount becomes the Buy number.
+        ...changed
+          .filter((item) => buyOf(item) !== (listAmount.get(item.id) ?? 0))
+          .map((item) => {
+            const entry = entries.get(item.id);
+            const buy = buyOf(item);
+            if (buy === 0) return removeFromShoppingList(entry!.id);
+            return entry
+              ? setShoppingAmount(entry.id, buy)
+              : addToShoppingList(item.id, buy);
+          }),
       ]);
-      toast.success("Inventory saved");
+      window.dispatchEvent(new Event(LIST_CHANGED));
+      toast.success("Shopping list updated");
       endMode();
-      saved = true;
     } catch (error) {
       toast.error(error);
     }
-    const next = await load();
+    await load();
     setSaving(false);
-    if (saved && next && next.list.length > 0) setConfirm("stale");
   };
 
   // An existing list was built from the old minimum and doesn't update itself.
@@ -271,7 +291,7 @@ export default function InventoryPage() {
 
   const title =
     mode === "count"
-      ? "Count Stock"
+      ? "Shopping Need"
       : mode === "plan"
         ? "Build Shopping List"
         : "Inventory";
@@ -287,11 +307,11 @@ export default function InventoryPage() {
           <div className="flex gap-2">
             <Btn
               variant="outline"
-              onClick={requestCounting}
-              aria-label="Count Stock"
+              onClick={startCounting}
+              aria-label="Shopping Need"
             >
               <ListChecks className="h-[18px] w-[18px]" />
-              <span>Count Stock</span>
+              <span>Shopping Need</span>
             </Btn>
             <Btn
               onClick={() => setEditing({ item: null })}
@@ -354,7 +374,7 @@ export default function InventoryPage() {
             <ShoppingCart className="h-6 w-6 shrink-0 text-brand" />
           )}
           {mode === "count"
-            ? "Tap − or + to set what's on the shelf. Tap an item to change its minimum."
+            ? "Buy starts at Min − Have. Each extra + comes off Have (never below 0). Saving updates the shopping list, and buying more than Min raises Min to match. Tap an item to change its minimum."
             : "Low items are already selected. Tap to add or remove, and adjust how many to buy. Use − or + next to Have to update stock."}
         </div>
       )}
@@ -455,17 +475,11 @@ export default function InventoryPage() {
                     <CountRow
                       key={item.id}
                       item={item}
-                      count={counts[item.id] ?? stockOf(item) ?? 0}
-                      minimum={minimums[item.id] ?? minOf(item)}
-                      changed={
-                        (counts[item.id] !== undefined &&
-                          counts[item.id] !== stockOf(item)) ||
-                        (minimums[item.id] !== undefined &&
-                          minimums[item.id] !== minOf(item))
-                      }
-                      onCount={(v) =>
-                        setCounts((c) => ({ ...c, [item.id]: v }))
-                      }
+                      buy={buyOf(item)}
+                      left={leftOf(item)}
+                      minimum={minNow(item)}
+                      changed={rowChanged(item)}
+                      onBuy={(v) => setBuys((b) => ({ ...b, [item.id]: v }))}
                       onAdjust={() => setAdjusting(item)}
                     />
                   ) : (
@@ -594,25 +608,6 @@ export default function InventoryPage() {
         onClose={() => setConfirm(null)}
       />
       <Confirm
-        open={confirm === "trip"}
-        title="Shopping Trip Not Finished"
-        message={`Your shopping list still has ${list.length} item${list.length === 1 ? "" : "s"}. If you've already bought them, finish the trip in Shopping first so they aren't counted twice.`}
-        confirmLabel="Go to Shopping"
-        onConfirm={() => router.push("/shoppinglist")}
-        onClose={() => setConfirm(null)}
-        extra={
-          <Btn
-            variant="tinted"
-            onClick={() => {
-              setConfirm(null);
-              startCounting();
-            }}
-          >
-            Count Anyway
-          </Btn>
-        }
-      />
-      <Confirm
         open={confirm === "replace"}
         title="Replace the current shopping list?"
         message={`Your shopping list already has ${list.length} items. Creating a new list removes them.${
@@ -628,16 +623,12 @@ export default function InventoryPage() {
       <Confirm
         open={confirm === "stale"}
         title="Shopping List Is Out of Date"
-        message={`Your shopping list was created before these changes, so it won't reflect them. Rebuild the list to include them.${
-          picked > 0
-            ? ` Shopping has started: rebuilding clears the ${picked} item${picked === 1 ? "" : "s"} checked off so far.`
-            : ""
-        }`}
-        confirmLabel="Rebuild List"
-        destructive={picked > 0}
+        message="The minimum changed, but the shopping list amount didn't. Open Shopping Need to review what to buy."
+        confirmLabel="Open Shopping Need"
         onConfirm={() => {
           setDetail(null);
-          startPlanning();
+          setConfirm(null);
+          startCounting();
         }}
         onClose={() => setConfirm(null)}
         showCancel={false}
@@ -684,19 +675,20 @@ function Chip({
 }
 
 function StockReadout({ item }: { item: Item }) {
+  // How many to buy is the headline; stock and minimum sit underneath.
   const stock = stockOf(item);
-  const isLow = needOf(item) > 0;
+  const need = needOf(item);
   return (
     <div
       className="text-right"
-      aria-label={`${stock ?? "Not counted"} in stock, minimum ${minOf(item)}`}
+      aria-label={`Need ${need}, ${stock ?? "not counted"} in stock, minimum ${minOf(item)}`}
     >
       <div
-        className={`text-xl font-semibold tabular-nums leading-tight ${isLow ? "text-low" : ""}`}
+        className={`text-xl font-semibold tabular-nums leading-tight ${need > 0 ? "text-low" : "text-gray-300"}`}
       >
-        {stock ?? "—"}
+        {need}
       </div>
-      <div className="text-[11px] text-gray-500">min {minOf(item)}</div>
+      <div className="text-[11px] text-gray-500">to buy</div>
     </div>
   );
 }
@@ -710,7 +702,6 @@ function BrowseRow({
   onList: boolean;
   onOpen: () => void;
 }) {
-  const need = needOf(item);
   return (
     <button
       onClick={onOpen}
@@ -724,15 +715,14 @@ function BrowseRow({
       <div className="min-w-0 flex-1">
         <div className="truncate font-medium">{item.name}</div>
         <div className="mt-0.5 flex items-center gap-1.5 text-xs text-gray-500">
-          {need > 0 && <Badge tint="#FF9500">Buy {need}</Badge>}
           {onList && (
             <ShoppingCart
               className="h-3.5 w-3.5 text-[#5856D6]"
               aria-label="On shopping list"
             />
           )}
-          <span className="truncate">
-            {item.item_place ?? item.shopping_place}
+          <span className="shrink-0 tabular-nums">
+            Have {stockOf(item) ?? "—"} · Min {minOf(item)}
           </span>
         </div>
       </div>
@@ -743,21 +733,22 @@ function BrowseRow({
 
 function CountRow({
   item,
-  count,
+  buy,
+  left,
   minimum,
   changed,
-  onCount,
+  onBuy,
   onAdjust,
 }: {
   item: Item;
-  count: number;
+  buy: number;
+  left: number;
   minimum: number;
   changed: boolean;
-  onCount: (value: number) => void;
+  onBuy: (value: number) => void;
   onAdjust: () => void;
 }) {
-  // What would still need buying at the count being entered.
-  const need = Math.max(0, minimum - count);
+  const stock = stockOf(item) ?? 0;
   return (
     <div className="flex items-center gap-3 px-4 py-2">
       <button
@@ -773,21 +764,18 @@ function CountRow({
         <div className="min-w-0">
           <div className="truncate font-medium">{item.name}</div>
           <div
-            className={`flex items-center gap-1 text-xs ${changed ? "text-brand" : "text-gray-500"}`}
+            className={`flex items-center gap-1 text-xs tabular-nums ${changed || buy > 0 ? "text-brand" : "text-gray-500"}`}
           >
-            Min {minimum}
-            {need > 0 && (
-              <span className="font-semibold text-low">· Buy {need}</span>
-            )}
+            Have {left !== stock ? `${stock} → ${left}` : left} · Min {minimum}
             <SlidersHorizontal className="h-3 w-3" />
           </div>
         </div>
       </button>
       <Stepper
-        value={count}
-        onChange={onCount}
-        highlighted={changed}
-        label={`${item.name} count`}
+        value={buy}
+        onChange={onBuy}
+        highlighted={buy > 0}
+        label={`${item.name} to buy`}
       />
     </div>
   );

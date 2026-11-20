@@ -9,9 +9,11 @@ import {
   Area,
   dayString,
   HistoryEntry,
+  InventoryRecord,
   Item,
   ItemDraft,
   Receipt,
+  recordTotal,
   ShoppingEntry,
   ShoppingPlace,
   TripItem,
@@ -116,6 +118,26 @@ export const recordCount = async (
       date: dayString(),
     }),
   );
+};
+
+/**
+ * Moves an item's stock by `delta` from its latest record, never below 0.
+ * Items on the shopping list come off stock; taking them off puts them back.
+ */
+export const shiftStock = async (itemId: number, delta: number) => {
+  if (delta === 0) return;
+  const rows = check(
+    await supabase
+      .from("current_inventory_v2")
+      .select("*")
+      .eq("item_id", itemId)
+      .order("timestamps", { ascending: false })
+      .limit(1),
+  ) as InventoryRecord[];
+  const previous = recordTotal(rows[0]);
+  const next = Math.max(0, (previous ?? 0) + delta);
+  if (next !== (previous ?? 0) || previous === null)
+    await recordCount(itemId, next, previous);
 };
 
 // MARK: Lookups

@@ -38,6 +38,7 @@ import {
   removeFromShoppingList,
   setShopped,
   setShoppingAmount,
+  shiftStock,
 } from "../utils/sql/restockApi";
 import {
   ItemDetailSheet,
@@ -125,6 +126,8 @@ export default function ShoppingPage() {
     update(entry.id, { amount });
     try {
       await setShoppingAmount(entry.id, amount);
+      // More on the list comes off stock; less puts it back.
+      await shiftStock(entry.item_id, entry.amount - amount);
     } catch (error) {
       update(entry.id, { amount: entry.amount });
       toast.error(error);
@@ -135,6 +138,8 @@ export default function ShoppingPage() {
     setList((current) => current?.filter((e) => e.id !== entry.id) ?? null);
     try {
       await removeFromShoppingList(entry.id);
+      // Taking it off the list puts it back in stock.
+      await shiftStock(entry.item_id, entry.amount);
       window.dispatchEvent(new Event(LIST_CHANGED));
     } catch (error) {
       toast.error(error);
@@ -146,7 +151,13 @@ export default function ShoppingPage() {
     if (!list) return;
     setFinishing(true);
     try {
+      // Everything on the list goes back into stock. The trip adds what was
+      // bought; the rest is added here so History still shows it as not bought.
+      const notBought = list.filter(
+        (e) => !e.shopped && !(isAdmin && alsoBought.has(e.id)),
+      );
       const logged = await finishTrip(alsoBought);
+      await Promise.all(notBought.map((e) => shiftStock(e.item_id, e.amount)));
       window.dispatchEvent(new Event(LIST_CHANGED));
       if (logged) {
         toast.success("Trip saved · add the receipt total in History");
@@ -224,10 +235,10 @@ export default function ShoppingPage() {
         <Empty
           icon={<ShoppingCart className="h-12 w-12" />}
           title="Your List Is Empty"
-          message="Build a list from items that are running low, or add things one by one."
+          message="Set what to buy in Shopping Need, or add things one by one."
         >
-          <Btn onClick={() => router.push("/?plan=1")}>
-            Build from Inventory
+          <Btn onClick={() => router.push("/?need=1")}>
+            Open Shopping Need
           </Btn>
           <Btn variant="plain" onClick={() => setAdding(true)}>
             Add an Item
@@ -372,7 +383,7 @@ export default function ShoppingPage() {
             className="w-full max-w-md shadow-lg"
             loading={finishing}
             // Admins review unchecked items so nothing bought is missed. For
-            // shoppers, unchecked means not found and never goes into stock.
+            // shoppers, unchecked is saved as not bought (stock is restored either way).
             onClick={() =>
               unpicked.length === 0 || !isAdmin
                 ? setConfirmFinish(true)
@@ -452,8 +463,8 @@ const finishMessage = (picked: number, unpicked: number) => {
   if (unpicked === 0)
     return `All ${items(picked)} will be added to stock and the trip will be saved to History.`;
   if (picked === 0)
-    return "Nothing is checked off, so nothing will be added to stock. The list will be cleared.";
-  return `${picked} checked ${picked === 1 ? "item" : "items"} will be added to stock. ${unpicked} not checked off will be saved as not found.`;
+    return "Nothing is checked off. Everything goes back into stock and the list will be cleared.";
+  return `Everything goes back into stock. ${picked} checked ${picked === 1 ? "item is" : "items are"} saved as bought; ${unpicked} not checked off ${unpicked === 1 ? "is" : "are"} saved as not bought.`;
 };
 
 function ShoppingRow({
@@ -649,6 +660,8 @@ function AddItemSheet({
     setSaving(true);
     try {
       await addToShoppingList(selected.id, amount);
+      // What goes on the list comes off stock.
+      await shiftStock(selected.id, -amount);
       window.dispatchEvent(new Event(LIST_CHANGED));
       toast.success(`${selected.name} added to list`);
       onAdded();
@@ -806,8 +819,8 @@ function ReviewSheet({
   const allTicked = bought.size === unpicked.length;
   const summary =
     adding === 0
-      ? "Nothing will be added to stock. The list will be cleared."
-      : `${adding} item${adding === 1 ? "" : "s"} added to stock${skipped > 0 ? ` · ${skipped} left low for next time` : ""}`;
+      ? "Nothing bought. Everything goes back into stock and the list will be cleared."
+      : `${adding} item${adding === 1 ? "" : "s"} bought${skipped > 0 ? ` · ${skipped} not bought` : ""} · all go back into stock`;
 
   return (
     <Sheet
@@ -845,8 +858,8 @@ function ReviewSheet({
       <div className="mb-2 px-1">
         <div className="text-sm font-semibold">Did you buy any of these?</div>
         <div className="text-xs text-gray-500">
-          Tick what you bought to add it to stock. Unticked items stay low and
-          come back on your next list.
+          Tick what you bought. Everything goes back into stock either way;
+          unticked items are saved in History as not bought.
         </div>
       </div>
       <div className="divide-y divide-black/5 overflow-hidden rounded-2xl bg-white">
@@ -887,7 +900,7 @@ function ReviewSheet({
                 <div
                   className={`text-xs ${isBought ? "text-green-600" : "text-low"}`}
                 >
-                  {isBought ? "Bought · add to stock" : "Not found · stays low"}
+                  {isBought ? "Bought" : "Not bought"}
                 </div>
               </div>
               <span className="text-sm font-bold tabular-nums text-gray-500">
