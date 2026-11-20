@@ -300,7 +300,7 @@ export default function InventoryPage() {
     <div>
       {/* Title and actions */}
       <div className="mb-4 flex items-end justify-between gap-3">
-        <h1 className="text-[34px] font-bold leading-tight sm:text-3xl">
+        <h1 className="min-w-0 truncate text-[34px] font-bold leading-tight sm:text-3xl">
           {title}
         </h1>
         {mode === "browse" ? (
@@ -309,8 +309,9 @@ export default function InventoryPage() {
               variant="outline"
               onClick={startCounting}
               aria-label="Shopping Need"
+              className="shrink-0 whitespace-nowrap"
             >
-              <ListChecks className="h-[18px] w-[18px]" />
+              <ListChecks className="h-[18px] w-[18px] shrink-0" />
               <span>Shopping Need</span>
             </Btn>
             <Btn
