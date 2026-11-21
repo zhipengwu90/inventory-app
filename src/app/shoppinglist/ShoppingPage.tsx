@@ -35,6 +35,7 @@ import {
   fetchItems,
   fetchShoppingList,
   finishTrip,
+  recordCount,
   removeFromShoppingList,
   setShopped,
   setShoppingAmount,
@@ -123,14 +124,19 @@ export default function ShoppingPage() {
     }
   };
 
-  const changeAmount = async (entry: ShoppingEntry, amount: number) => {
+  const changeAmount = async (
+    entry: ShoppingEntry,
+    amount: number,
+    have: number,
+  ) => {
     update(entry.id, { amount });
     const item = items.find((i) => i.id === entry.item_id) ?? entry.item_list;
+    const stock = item ? stockOf(item) : null;
     try {
       await Promise.all([
-        setShoppingAmount(entry.id, amount),
-        // More on the list comes off stock; less puts it back.
-        shiftStock(entry.item_id, entry.amount - amount),
+        amount !== entry.amount ? setShoppingAmount(entry.id, amount) : null,
+        // The sheet already moved Have with the amount; save it as a count.
+        have !== stock ? recordCount(entry.item_id, have, stock) : null,
         // Buying more than the minimum raises the minimum to match.
         item && amount > minOf(item)
           ? updateMinAmount(entry.item_id, amount)
@@ -583,13 +589,24 @@ function AmountSheet({
   entry: ShoppingEntry | null;
   item: Item | null;
   onClose: () => void;
-  onSave: (entry: ShoppingEntry, amount: number) => void;
+  onSave: (entry: ShoppingEntry, amount: number, have: number) => void;
 }) {
   const [amount, setAmount] = useState(1);
+  const [have, setHave] = useState(0);
   useEffect(() => {
     if (entry) setAmount(Math.max(entry.amount, 1));
+    // More on the list comes off stock; less puts it back.
+    if (entry) setHave(Math.max(0, (item ? stockOf(item) : null) ?? 0));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [entry]);
   if (!entry) return null;
+  const changeAmount = (next: number) => {
+    setHave((h) => Math.max(0, h - (next - amount)));
+    setAmount(next);
+  };
+  const stock = item ? stockOf(item) : null;
+  const min = item ? minOf(item) : 0;
+  const newMin = Math.max(min, amount);
   return (
     <Sheet
       open
@@ -600,7 +617,7 @@ function AmountSheet({
         <Btn
           size="sm"
           onClick={() => {
-            onSave(entry, amount);
+            onSave(entry, amount, have);
             onClose();
           }}
         >
@@ -612,36 +629,23 @@ function AmountSheet({
         <BigStepper
           title="How many to buy?"
           value={amount}
-          onChange={setAmount}
+          onChange={changeAmount}
           min={1}
         />
         {item && (
-          <AmountEffect item={item} before={entry.amount} amount={amount} />
+          <div className="mt-8 flex items-center justify-between rounded-2xl bg-black/[0.03] px-4 py-3">
+            <div className="text-sm">
+              <div className="font-medium">In stock</div>
+              <div className="text-gray-500 tabular-nums">
+                {have !== (stock ?? 0) ? `${stock ?? 0} → ${have}` : "No change"}
+                {" · "}Min {newMin !== min ? `${min} → ${newMin}` : min}
+              </div>
+            </div>
+            <Stepper value={have} onChange={setHave} label="In stock" />
+          </div>
         )}
       </div>
     </Sheet>
-  );
-}
-
-/** Previews what saving does to Have and Min, matching Shopping Need. */
-function AmountEffect({
-  item,
-  before,
-  amount,
-}: {
-  item: Item;
-  before: number;
-  amount: number;
-}) {
-  const have = stockOf(item) ?? 0;
-  const left = Math.max(0, have - (amount - before));
-  const min = minOf(item);
-  const newMin = Math.max(min, amount);
-  return (
-    <p className="mt-6 text-center text-sm font-medium text-gray-500 tabular-nums">
-      Have {left !== have ? `${have} → ${left}` : have} · Min{" "}
-      {newMin !== min ? `${min} → ${newMin}` : min}
-    </p>
   );
 }
 
@@ -703,8 +707,14 @@ function AddItemSheet({
     setSaving(true);
     try {
       await addToShoppingList(selected.id, amount);
-      // What goes on the list comes off stock.
-      await shiftStock(selected.id, -amount);
+      await Promise.all([
+        // What goes on the list comes off stock.
+        shiftStock(selected.id, -amount),
+        // Buying more than the minimum raises the minimum to match.
+        amount > minOf(selected)
+          ? updateMinAmount(selected.id, amount)
+          : null,
+      ]);
       window.dispatchEvent(new Event(LIST_CHANGED));
       toast.success(`${selected.name} added to list`);
       onAdded();
