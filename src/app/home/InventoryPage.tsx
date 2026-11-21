@@ -243,6 +243,37 @@ export default function InventoryPage() {
     setSaving(false);
   };
 
+  // One item's Buy from its detail sheet, with the same rules as Shopping Need.
+  const setBuyFor = async (item: Item, buy: number) => {
+    const entry = list.find((e) => e.item_id === item.id);
+    const have = stockOf(item) ?? 0;
+    const auto = entry?.amount ?? Math.max(0, minOf(item) - have);
+    const left = Math.max(0, have - Math.max(0, buy - auto));
+    try {
+      await Promise.all([
+        left !== have || stockOf(item) === null
+          ? recordCount(item.id, left, stockOf(item))
+          : null,
+        buy > minOf(item) ? updateMinAmount(item.id, buy) : null,
+        buy === 0
+          ? entry && removeFromShoppingList(entry.id)
+          : entry
+            ? setShoppingAmount(entry.id, buy)
+            : addToShoppingList(item.id, buy),
+      ]);
+      window.dispatchEvent(new Event(LIST_CHANGED));
+      toast.success(
+        buy === 0
+          ? `${item.name} removed from list`
+          : `${item.name} · ${buy} on shopping list`,
+      );
+      setDetail(null);
+    } catch (error) {
+      toast.error(error);
+    }
+    await load();
+  };
+
   // An existing list was built from the old minimum and doesn't update itself.
   const onItemSaved = async (before: Item | null) => {
     const next = await load();
@@ -565,6 +596,15 @@ export default function InventoryPage() {
         item={detail ? (items.find((i) => i.id === detail.id) ?? null) : null}
         places={lookups.places}
         onClose={() => setDetail(null)}
+        listAmount={
+          detail
+            ? list.find((e) => e.item_id === detail.id)?.amount
+            : undefined
+        }
+        onSetBuy={(buy) => {
+          const current = detail && items.find((i) => i.id === detail.id);
+          return current ? setBuyFor(current, buy) : Promise.resolve();
+        }}
         onEdit={() =>
           // Use the reloaded item, not the snapshot taken when the sheet opened.
           setEditing({

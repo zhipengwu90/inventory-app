@@ -8,6 +8,7 @@ import {
   Clock,
   MapPin,
   Plus,
+  ShoppingCart,
   Square,
   Store,
   Tag,
@@ -43,6 +44,7 @@ import {
   inputClass,
   selectClass,
   Sheet,
+  Stepper,
   Thumb,
 } from "./ui";
 import { useToast } from "./Toast";
@@ -55,14 +57,30 @@ export function ItemDetailSheet({
   places = [],
   onClose,
   onEdit,
+  listAmount,
+  onSetBuy,
 }: {
   item: Item | null;
   /** Shopping places, to name the backup place. */
   places?: ShoppingPlace[];
   onClose: () => void;
   onEdit: () => void;
+  /** Amount already on the shopping list, if any. */
+  listAmount?: number;
+  /** Puts the item on the list at this amount (0 takes it off). Hidden when absent. */
+  onSetBuy?: (buy: number) => Promise<void>;
 }) {
   const [zoom, setZoom] = useState(false);
+  // Same rules as Shopping Need: Buy starts at the list amount or Min − Have,
+  // each extra one comes off Have, and buying more than Min raises Min.
+  const autoBuy = item
+    ? (listAmount ?? Math.max(0, minOf(item) - (stockOf(item) ?? 0)))
+    : 0;
+  const [buy, setBuy] = useState(autoBuy);
+  const [savingBuy, setSavingBuy] = useState(false);
+  useEffect(() => {
+    setBuy(autoBuy);
+  }, [item?.id, autoBuy]);
   if (!item) return null;
 
   const stock = stockOf(item);
@@ -145,6 +163,22 @@ export function ItemDetailSheet({
         ))}
       </div>
 
+      {onSetBuy && (
+        <BuyPanel
+          item={item}
+          buy={buy}
+          autoBuy={autoBuy}
+          listAmount={listAmount}
+          saving={savingBuy}
+          onChange={setBuy}
+          onSave={async () => {
+            setSavingBuy(true);
+            await onSetBuy(buy);
+            setSavingBuy(false);
+          }}
+        />
+      )}
+
       <Group className="mt-4">
         {info.map(([label, value, Icon, tint]) => (
           <div key={label} className="flex items-center gap-3 px-3 py-2.5">
@@ -187,6 +221,59 @@ export function ItemDetailSheet({
         </div>
       )}
     </Sheet>
+  );
+}
+
+function BuyPanel({
+  item,
+  buy,
+  autoBuy,
+  listAmount,
+  saving,
+  onChange,
+  onSave,
+}: {
+  item: Item;
+  buy: number;
+  autoBuy: number;
+  listAmount?: number;
+  saving: boolean;
+  onChange: (buy: number) => void;
+  onSave: () => void;
+}) {
+  const have = stockOf(item) ?? 0;
+  const left = Math.max(0, have - Math.max(0, buy - autoBuy));
+  const newMin = Math.max(minOf(item), buy);
+  const unchanged = buy === (listAmount ?? 0);
+  const label =
+    listAmount === undefined
+      ? "Add to Shopping List"
+      : buy === 0
+        ? "Remove from List"
+        : "Update List";
+  return (
+    <div className="mt-4 rounded-2xl bg-white p-4">
+      <div className="flex items-center gap-3">
+        <div className="min-w-0 flex-1">
+          <div className="text-sm font-semibold">Buy</div>
+          <div className="text-xs text-gray-500 tabular-nums">
+            Have {left !== have ? `${have} → ${left}` : have} · Min{" "}
+            {newMin !== minOf(item) ? `${minOf(item)} → ${newMin}` : newMin}
+            {listAmount !== undefined && ` · ${listAmount} on list`}
+          </div>
+        </div>
+        <Stepper value={buy} onChange={onChange} label={`${item.name} to buy`} />
+      </div>
+      <Btn
+        className="mt-3 w-full"
+        disabled={unchanged}
+        loading={saving}
+        onClick={onSave}
+      >
+        <ShoppingCart className="h-[18px] w-[18px]" />
+        {label}
+      </Btn>
+    </div>
   );
 }
 
