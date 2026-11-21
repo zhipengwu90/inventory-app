@@ -39,6 +39,7 @@ import {
   setShopped,
   setShoppingAmount,
   shiftStock,
+  updateMinAmount,
 } from "../utils/sql/restockApi";
 import {
   ItemDetailSheet,
@@ -124,10 +125,19 @@ export default function ShoppingPage() {
 
   const changeAmount = async (entry: ShoppingEntry, amount: number) => {
     update(entry.id, { amount });
+    const item = items.find((i) => i.id === entry.item_id) ?? entry.item_list;
     try {
-      await setShoppingAmount(entry.id, amount);
-      // More on the list comes off stock; less puts it back.
-      await shiftStock(entry.item_id, entry.amount - amount);
+      await Promise.all([
+        setShoppingAmount(entry.id, amount),
+        // More on the list comes off stock; less puts it back.
+        shiftStock(entry.item_id, entry.amount - amount),
+        // Buying more than the minimum raises the minimum to match.
+        item && amount > minOf(item)
+          ? updateMinAmount(entry.item_id, amount)
+          : null,
+      ]);
+      window.dispatchEvent(new Event(LIST_CHANGED));
+      if (isAdmin) setItems(await fetchItems());
     } catch (error) {
       update(entry.id, { amount: entry.amount });
       toast.error(error);
@@ -401,6 +411,12 @@ export default function ShoppingPage() {
       {/* Dialogs */}
       <AmountSheet
         entry={amountFor}
+        item={
+          amountFor
+            ? (items.find((i) => i.id === amountFor.item_id) ??
+              amountFor.item_list)
+            : null
+        }
         onClose={() => setAmountFor(null)}
         onSave={changeAmount}
       />
@@ -560,10 +576,12 @@ function ShoppingRow({
 
 function AmountSheet({
   entry,
+  item,
   onClose,
   onSave,
 }: {
   entry: ShoppingEntry | null;
+  item: Item | null;
   onClose: () => void;
   onSave: (entry: ShoppingEntry, amount: number) => void;
 }) {
@@ -597,8 +615,33 @@ function AmountSheet({
           onChange={setAmount}
           min={1}
         />
+        {item && (
+          <AmountEffect item={item} before={entry.amount} amount={amount} />
+        )}
       </div>
     </Sheet>
+  );
+}
+
+/** Previews what saving does to Have and Min, matching Shopping Need. */
+function AmountEffect({
+  item,
+  before,
+  amount,
+}: {
+  item: Item;
+  before: number;
+  amount: number;
+}) {
+  const have = stockOf(item) ?? 0;
+  const left = Math.max(0, have - (amount - before));
+  const min = minOf(item);
+  const newMin = Math.max(min, amount);
+  return (
+    <p className="mt-6 text-center text-sm font-medium text-gray-500 tabular-nums">
+      Have {left !== have ? `${have} → ${left}` : have} · Min{" "}
+      {newMin !== min ? `${min} → ${newMin}` : min}
+    </p>
   );
 }
 

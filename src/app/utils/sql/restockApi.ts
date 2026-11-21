@@ -195,7 +195,14 @@ export const uploadImage = async (
     maxWidthOrHeight: 500,
     useWebWorker: true,
   });
-  const base = itemName.trim().replace(/\s+/g, "_") || "newItem";
+  // Supabase storage keys only accept ASCII, so drop Chinese/other characters.
+  const base =
+    itemName
+      .trim()
+      .replace(/\s+/g, "_")
+      .replace(/[^A-Za-z0-9_-]/g, "")
+      .replace(/_+/g, "_")
+      .replace(/^_|_$/g, "") || "item";
   const fileName = `${store()}/${base}_${Date.now()}.jpg`;
   check(
     await supabase.storage
